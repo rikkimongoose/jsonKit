@@ -7,6 +7,7 @@ const rightPanelElement = document.getElementById('right-panel');
 
 let editor;
 let currentFilePath = "";
+let fileTreeSocket;
 
 function initJSONEditor() {
   const container = document.getElementById('json-editor');
@@ -30,7 +31,7 @@ function saveCurrentFile() {
     if (!currentFilePath) return;
     const json = editor.get();
     fetch(`/api/file?path=${encodeURIComponent(currentFilePath)}`, {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(json, null, 2)
       })
@@ -135,6 +136,52 @@ function initFileTree(filepath) {
     });
   }
   
+  function initWebSocket() {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}`;
+    
+    const fileTreeSocket = new WebSocket(wsUrl);
+
+    fileTreeSocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('FS event:', data);
+      
+      const tree = $("#file-tree").fancytree("getTree");
+      if (!tree) return;
+
+      switch(data.event) {
+        case 'add':
+        case 'addDir':
+          // Добавляем новый узел
+          const parentPath = data.path.split('/').slice(0, -1).join('/');
+          const parentNode = tree.getNodeByKey(parentPath) || tree.getRootNode();
+          parentNode.load(true); // Перезагружаем родительский узел
+          break;
+          
+        case 'remove':
+        case 'removeDir':
+          // Удаляем узел
+          const nodeToRemove = tree.getNodeByKey(data.path);
+          if (nodeToRemove) {
+            nodeToRemove.remove();
+          }
+          break;
+          
+        case 'change':
+          // Обновляем файл (если он открыт в редакторе)
+          if (currentFilePath === data.path) {
+            showFileContent(data.path);
+          }
+          break;
+      }
+    };
+
+    fileTreeSocket.onclose = () => {
+      console.log('WebSocket disconnected, reconnecting...');
+      setTimeout(initWebSocket, 1000);
+    };
+  }
+
   // Обновите инициализацию страницы
   document.addEventListener('DOMContentLoaded', () => {
     initJSONEditor();
@@ -144,6 +191,7 @@ function initFileTree(filepath) {
         document.getElementById('app-title').textContent = config.title;
         document.getElementById('current-path').textContent = config.filepath;
         initFileTree(config.filepath);
+        initWebSocket();
     });
 });
 

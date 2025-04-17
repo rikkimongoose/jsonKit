@@ -130,7 +130,7 @@ const loadDir = async (absolutePath) => {
     }
 
     // Сортируем: сначала директории, потом файлы
-    const sortByName = (a, b) => a.name.localeCompare(b.name);
+    const sortByName = (a, b) => a.title.localeCompare(b.title);
     resultDir.sort(sortByName);
     resultFiles.sort(sortByName);
     result = resultDir.concat(resultFiles);
@@ -152,47 +152,146 @@ app.get('/api/files', async (req, res) => {
 });
 
 app.get('/api/file', async (req, res) => {
-    try {
-        const absolutePath = req.query.path;
-        if (!absolutePath || !absolutePath.endsWith('.json')) {
-            return res.status(400).json({ error: 'Укажите путь к JSON-файлу' });
-        }
-        
-        if (absolutePath.startsWith(path.resolve(config.server.staticFiles))) {
-            return res.status(403).json({ error: 'Доступ запрещён' });
-        }
-
-        const content = await fs.readFile(absolutePath, 'utf-8');
-        JSON.parse(content); // Валидация JSON
-        res.type('application/json').send(content);
-    } catch (error) {
+    const absolutePath = req.query.path;
+    if (!absolutePath || !absolutePath.endsWith('.json')) {
+        res.status(400).json({ error: 'Укажите путь к JSON-файлу' });
+    }
+    
+    if (absolutePath.startsWith(path.resolve(config.server.staticFiles))) {
+        res.status(403).json({ error: 'Доступ запрещён' });
+    }
+    
+    fs.readFile(absolutePath, 'utf-8', (err, content) => {
+      const errorMessageText = `Ошибка чтения файла: ${absolutePath}`
+      if (err) {
         const jsonErr = { 
-            error: error instanceof SyntaxError ? 'Невалидный JSON' : 'Ошибка чтения файла',
+            error: errorMessageText,
             details: error.message 
         }
         console.error(jsonErr)
         res.status(500).json(jsonErr);
-    }
+      }
+      try {
+        JSON.parse(content);
+      } catch (error) {
+          const parseErr = { 
+              error: error instanceof SyntaxError ? `Невалидный JSON: ${content}` : errorMessageText,
+              details: error.message 
+          }
+          console.error(jsonErr)
+          res.status(500).json(jsonErr);
+      }
+      // Валидация JSON
+      res.type('application/json').send(content);
+    });
 });
 
-app.put('/api/file', express.json(), async (req, res) => {
-    try {
-      const requestedPath = req.query.path;
-      if (!requestedPath.endsWith('.json')) {
-        return res.status(400).json({ error: 'Можно сохранять только JSON-файлы' });
-      }
-      const absolutePath = path.resolve(requestedPath);
-      if (absolutePath.startsWith(path.resolve(config.server.staticFiles))) {
-        return res.status(403).json({ error: 'Доступ запрещён' });
-      }
-      await fs.writeFile(absolutePath, JSON.stringify(req.body, null, 2));
-      res.json({ success: true });
-    } catch (error) {
-        const jsonErr = { error: error.message }
+app.post('/api/file', express.json(), async (req, res) => {
+    const requestedPath = req.query.path;
+    if (!requestedPath.endsWith('.json')) {
+        res.status(400).json({ error: 'Можно сохранять только JSON-файлы' });
+    }
+    const absolutePath = path.resolve(requestedPath);
+    if (absolutePath.startsWith(path.resolve(config.server.staticFiles))) {
+        res.status(403).json({ error: 'Доступ запрещён' });
+    }
+    fs.writeFile(absolutePath, JSON.stringify(req.body, null, 2), (err) => {
+      if (err) {
+        const jsonErr = { error: err.message }
         console.error(jsonErr)
         res.status(500).json(jsonErr);
+      }
+      res.json({ success: true });
+    });
+});
+
+app.post('/api/file/rename', express.json(), async (req, res) => {
+      const { pathOld, pathNew } = req.body;
+      const pathsToCheck = [pathOld, pathNew]
+
+      // Проверка безопасности путей
+      const basePath = path.resolve(config.server.staticFiles);
+
+      pathsToCheck.forEach(filePath => {
+          // Проверка обязательных параметров
+          if (!filePath) {
+              res.status(400).json({ error: 'Не указаны pathOld или pathNew' });
+          }
+          if (filePath.startsWith(path.resolve(basePath))) {
+              res.status(403).json({ error: 'Доступ запрещён' });
+          }           
+      });
+      // Выполняем переименование
+      fs.rename(absolutePathOld, absolutePathNew, err => {
+        if (err) {
+          console.error('Ошибка переименования:', err);
+          res.status(500).json({ 
+              error: `Ошибка при переименовании ${absolutePathOld} в ${absolutePathNew}`,
+              details: error.message 
+          });
+        }
+        res.json({ 
+            success: true,
+            message: 'Успешно переименовано',
+            pathOld: pathOld,
+            pathNew: pathNew
+        });
+      });
+});
+
+app.delete('/api/file', async (req, res) => {
+    const requestedPath = req.query.path;
+    if (!requestedPath) {
+        res.status(400).json({ error: 'Не указан путь' });
     }
-  });
+
+    const basePath = path.resolve(config.server.staticFiles);
+    const absolutePath = path.resolve(requestedPath);
+
+    // Проверка безопасности пути
+    if (absolutePath.startsWith(basePath)) {
+        res.status(403).json({ error: 'Доступ запрещён' });
+    }
+
+    fs.stat(absolutePath, (err, stats) => {
+      if (err) {
+        console.error('Ошибка удаления:', err);
+        if (err.code === 'ENOENT') {
+            res.status(404).json({ error: 'Файл или директория не найдены' });
+        } else {
+            res.status(500).json({ 
+                error: 'Ошибка при удалении',
+                details: err.message 
+            });
+        }
+      }
+      const messageOK = { success: true, message: `Удаление ${requestedPath} успешно` }
+      const messageErrText = `Ошибка при удалении ${requestedPath}`
+      if (stats.isDirectory()) {
+        // Удаление директории
+        fs.rmdir(absolutePath, { recursive: true }, err => {
+            if (err) {
+              res.status(500).json({ 
+                error: messageErrText,
+                details: err.message 
+              });
+            }
+            res.json(messageOK);
+          });
+        } else {
+          // Удаление файла
+          fs.unlink(absolutePath, err => {
+            if (err) {
+              res.status(500).json({ 
+                error: messageErrText,
+                details: err.message 
+              });
+            }
+            res.json(messageOK);
+          });
+      }
+    });
+});
 
 configWatcher.on('change', () => {
   console.log('\n[DEV] Обнаружено изменение конфига');

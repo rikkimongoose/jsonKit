@@ -28,7 +28,9 @@
     padding: 10px;
     overflow: auto;
   }
-  #left-panel { background: #f9f9f9; }
+  #left-panel { 
+    background: #f9f9f9;
+   }
   .dev-mode {
       outline: 2px solid red;
   }

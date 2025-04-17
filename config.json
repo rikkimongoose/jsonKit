@@ -5,7 +5,7 @@
     },
     "app": {
       "title": "JSON kit",
-      "version": "1.0",
+      "version": "1.1",
       "enableSplitPanel": true
     },
     "navigation": {
