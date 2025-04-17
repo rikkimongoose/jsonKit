@@ -4,6 +4,7 @@ const Joi = require('joi');
 const configSchema = Joi.object({
   server: Joi.object({
     port: Joi.number().integer().min(1).max(65535).required(),
+    portWss: Joi.number().integer().min(1).max(65535).required(),
     staticFiles: Joi.string().required(),
     cors: Joi.object({
       enabled: Joi.boolean().default(false),

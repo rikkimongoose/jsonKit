@@ -3,8 +3,8 @@ const path = require('path');
 const fs = require('fs-extra');
 const chokidar = require('chokidar');
 const Joi = require('joi');
+const WebSocket = require('ws');
 const configSchema = require('./config.schema');
-const { verify } = require('crypto');
 
 require('dotenv').config()
 
@@ -84,6 +84,7 @@ app.get('/config', (req, res) => {
     title: config.app.title,
     version: config.app.version,
     filepath: config.navigation.filepath,
+    portWss: config.server.portWss,
     isDev: isDev
   });
 });
@@ -314,3 +315,83 @@ const server = app.listen(config.server.port, () => {
     console.log('  - public/');
   }
 });
+
+
+// Создаем WebSocket сервер
+const wss = new WebSocket.Server({ port: config.server.portWss });
+
+// Функция для отправки сообщений всем подключенным клиентам
+function broadcast(data) {
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(data));
+    }
+  });
+}
+
+// Инициализация watcher
+const watcher = chokidar.watch(config.navigation.filepath, {
+  ignored: /(^|[\/\\])\../, // игнорируем скрытые файлы
+  persistent: true,
+  ignoreInitial: true, // игнорируем начальное сканирование
+  awaitWriteFinish: {
+    stabilityThreshold: 500,
+    pollInterval: 100
+  }
+});
+
+// Обработчики событий watcher
+watcher
+  .on('add', filePath => {
+    if (filePath.endsWith('.json') || !path.extname(filePath)) {
+      broadcast({
+        type: 'add',
+        path: filePath,
+        basename: path.basename(filePath),
+        isDirectory: !path.extname(filePath),
+        time: new Date().toISOString()
+      });
+    }
+  })
+  .on('addDir', dirPath => {
+    broadcast({
+      type: 'addDir',
+      path: dirPath,
+      isDirectory: true,
+      time: new Date().toISOString()
+    });
+  })
+  .on('change', filePath => {
+    if (filePath.endsWith('.json')) {
+      broadcast({
+        type: 'change',
+        path: filePath,
+        isDirectory: false,
+        time: new Date().toISOString()
+      });
+    }
+  })
+  .on('unlink', filePath => {
+    if (filePath.endsWith('.json') || !path.extname(filePath)) {
+      broadcast({
+        type: 'unlink',
+        path: filePath,
+        isDirectory: !path.extname(filePath),
+        time: new Date().toISOString()
+      });
+    }
+  })
+  .on('unlinkDir', dirPath => {
+    broadcast({
+      type: 'unlinkDir',
+      path: dirPath,
+      isDirectory: true,
+      time: new Date().toISOString()
+    });
+  })
+  .on('error', error => {
+    console.error('Watcher error:', error);
+  })
+  .on('ready', () => {
+    console.log(`Initial scan complete. Ready for changes in ${config.navigation.filepath}`);
+  });

@@ -136,9 +136,26 @@ function initFileTree(filepath) {
     });
   }
   
-  function initWebSocket() {
+  function generateNode(data) {
+    if (data.isDirectory) {
+      return {
+        title: data.basename,
+        folder: true,
+        key: data.path,
+        type: 'directory',
+        children: subDir
+      };
+    }
+    return {
+      title: data.basename,
+      key: data.path,
+      type: 'file'
+    };
+  }
+
+  function initWebSocket(config) {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}`;
+    const wsUrl = `${wsProtocol}//localhost:${config.portWss}`;
     
     const fileTreeSocket = new WebSocket(wsUrl);
 
@@ -149,17 +166,17 @@ function initFileTree(filepath) {
       const tree = $("#file-tree").fancytree("getTree");
       if (!tree) return;
 
-      switch(data.event) {
+      switch(data.type) {
         case 'add':
         case 'addDir':
           // Добавляем новый узел
           const parentPath = data.path.split('/').slice(0, -1).join('/');
           const parentNode = tree.getNodeByKey(parentPath) || tree.getRootNode();
-          parentNode.load(true); // Перезагружаем родительский узел
-          break;
           
-        case 'remove':
-        case 'removeDir':
+          parentNode.addChildren(generateNode(data));
+          break;
+        case 'unlink':
+        case 'unlinkDir':
           // Удаляем узел
           const nodeToRemove = tree.getNodeByKey(data.path);
           if (nodeToRemove) {
@@ -181,19 +198,6 @@ function initFileTree(filepath) {
       setTimeout(initWebSocket, 1000);
     };
   }
-
-  // Обновите инициализацию страницы
-  document.addEventListener('DOMContentLoaded', () => {
-    initJSONEditor();
-    fetch('/config')
-    .then(response => response.json())
-    .then(config => {
-        document.getElementById('app-title').textContent = config.title;
-        document.getElementById('current-path').textContent = config.filepath;
-        initFileTree(config.filepath);
-        initWebSocket();
-    });
-});
 
 // Инициализация SSE соединения для hot-reload
 function initHotReload() {
@@ -222,7 +226,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
         })
-        .then(updateUI)
+        .then(config => {
+          document.getElementById('app-title').textContent = config.title;
+          document.getElementById('current-path').textContent = config.filepath;
+          initFileTree(config.filepath);
+          initWebSocket(config);
+          updateUI(config)
+        })
         .catch(error => {
             console.error('Ошибка загрузки конфигурации:', error);
             currentPathElement.textContent = 'Ошибка загрузки конфигурации';
