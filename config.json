@@ -1,0 +1,14 @@
+{
+    "server": {
+      "port": 3000,
+      "staticFiles": "./public"
+    },
+    "app": {
+      "title": "JSON kit",
+      "version": "1.0",
+      "enableSplitPanel": true
+    },
+    "navigation": {
+       "filepath": "./examples"
+    }
+}
