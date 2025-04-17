@@ -1,18 +1,29 @@
 {
   "name": "json-kit",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple JSON navigator and editor, implemented on NodeJS",
+  "keywords": [],
+  "homepage": "https://github.com/rikkimongoose/jsonKit#readme",
+  "bugs": {
+    "url": "https://github.com/rikkimongoose/jsonKit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rikkimongoose/jsonKit.git"
+  },
+  "license": "MIT",
+  "author": "Rikki Mongoose",
+  "type": "commonjs",
   "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon --watch server.js --watch config.json --watch public server.js",
     "dev:full": "nodemon --watch . server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "chokidar": "^4.0.3",
     "dotenv": "^16.5.0",
@@ -20,6 +31,7 @@
     "fs-extra": "^11.3.0",
     "joi": "^17.13.3",
     "jquery.fancytree": "^2.38.5",
-    "jsoneditor": "^10.2.0"
+    "jsoneditor": "^10.2.0",
+    "morgan": "^1.10.0"
   }
 }
