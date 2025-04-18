@@ -1,57 +1,67 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Manager</title>
-
-    <link href="style.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.0/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet">
-    
-    <script src="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.0/dist/jquery.fancytree-all-deps.min.js"></script>
-    <script src="https://unpkg.com/split.js/dist/split.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>jsonKit</title>
+  <link href="style.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.0/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.0/dist/jquery.fancytree-all-deps.min.js"></script>
+  <script src="https://unpkg.com/split.js/dist/split.min.js"></script>
 </head>
 <body>
-  <div id="header">
-    <div>
-      <h1 id="app-title">File Manager</h1>
-      <div id="app-version" class="version-badge"></div>
+  <!-- Заголовок приложения -->
+  <div class="header">
+    <div class="header-block-left">
+      <div><h1 id="app-title">jsonKit</h1></div>
+      <div id="app-version" class="version-badge">1.0</div>
     </div>
-    <div id="path-display">
+    <div id="path-display" class="header-block-right">
       Путь: <span id="current-path">загрузка...</span>
     </div>
   </div>
-
+  
+  <!-- Контейнер с двумя колонками -->
   <div id="split-container">
-    <div id="left-panel" class="split-pane left-pane">
-        <div>
-            <div class="tree-toolbar fixed-size">
-              <button id="refresh-tree" title="Обновить">
-                <i class="icon-refresh">↻</i>
-              </button>
-              <input type="text" id="tree-filter" placeholder="Фильтр..." autocomplete="off">
-            </div>
-            <div class="full-size">
-              <div id="file-tree"></div>
-            </div>
+    <!-- Левая колонка -->
+    <div id="left" class="split-pane left-pane">
+      <!-- Верхний блок с кнопками -->
+      <div class="left-top">
+        <div class="button-container">
+          <div class="tree-toolbar fixed-size">
+            <button id="refresh-tree" title="Обновить">
+              <i class="icon-refresh">↻</i>
+            </button>
+            <input type="text" id="tree-filter" placeholder="Фильтр..." autocomplete="off">
+          </div>
         </div>
+      </div>
+      <!-- Нижний блок, занимающий всё оставшееся пространство -->
+      <div class="left-bottom" id="file-tree">
+      </div>
     </div>
-    <div id="right-panel" class="split-pane right-pane">
-        <div class="full-size">
-            <div id="json-editor"></div>
+
+    <!-- Правая колонка -->
+    <div id="right" class="split-pane right-pane">
+      <!-- Верхний блок, занимающий всю доступную высоту -->
+      <div id="json-editor" class="right-top">
+      </div>
+      <!-- Нижний блок с панелью кнопок -->
+      <div class="right-bottom">
+        <div class="button-container">
+          <button id="save-btn">Save</button>
         </div>
-        <div class="fixed-size">
-            <button id="save-btn">Save</button>
-        </div>
+      </div>
     </div>
   </div>
   <script src="script.js"></script>
   <script>
     // Инициализация Split.js для управления двумя колонками
-    Split(['#left-panel', '#right-panel'], {
+    Split(['#left', '#right'], {
       sizes: [25, 75],     // начальное распределение ширины
       gutterSize: 10,      // ширина разделителя в пикселях
       minSize: 230,         // минимальная ширина каждого блока в пикселях
