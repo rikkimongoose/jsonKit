@@ -92,10 +92,16 @@ html, body {
 .left-top {
   flex: 0 0 auto;
 }
-.left-bottom {
+.left-middle {
   flex: 1;
   overflow: auto;
   padding: 10px;
+}
+
+.left-bottom {
+  flex: 0 0 auto;
+  padding-bottom: 10px;
+  background-color: #ccc;
 }
 
 /* Правая колонка: верхний блок растягивается, нижний блок с кнопками — фиксированный размер */
@@ -115,6 +121,7 @@ html, body {
   background-color: #ccc;
 }
 
+
 .button-container button {
   height: 40px;           /* Фиксированная высота кнопки */
   padding: 0 15px;        /* Горизонтальные отступы */
@@ -125,10 +132,19 @@ html, body {
   cursor: pointer;
   font-size: 16px;
 }
+
 .button-container button:hover {
-  background-color: #2980b9;
+  background-color: #4c8ffb;
 }
-  
+
+.button-container button.red-button {
+  background-color: #ff4600;
+}
+
+.button-container button.red-button:hover {
+  background-color: #ff591a;
+}
+
 .tree-toolbar {
   border-bottom: 1px solid #ddd;
   display: flex;
@@ -141,4 +157,12 @@ html, body {
 
 ul.fancytree-container {
   height: calc(100% - 10px);
+}
+
+.block-right {
+  float: right;
+}
+
+.block-left {
+  float: left;
 }

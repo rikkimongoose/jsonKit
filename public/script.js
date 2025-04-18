@@ -4,6 +4,7 @@ const appVersion = document.getElementById('app-version')
 const currentPathElement = document.getElementById('current-path');
 const leftPanelElement = document.getElementById('left-panel');
 const rightPanelElement = document.getElementById('right-panel');
+const openedFilePathDisplayElement = document.getElementById('opened-file-path-display');
 
 let editor;
 let currentFilePath = "";
@@ -15,7 +16,7 @@ function initJSONEditor() {
     mode: 'tree',
     modes: ['tree', 'code', 'form', 'text'],
     onError: (err) => {
-      console.error('JSONEditor error:', err);
+      console.error('JSONdata.pathEditor error:', err);
     }/*,
     onChange: () => {
       // Автосохранение при изменениях (опционально)
@@ -63,6 +64,7 @@ function showFileContent(filePath) {
             if (!editor) {
                 initJSONEditor();
             }
+            openedFilePathDisplayElement.textContent = filePath;
             editor.set(json);
             editor.expandAll();
         })
@@ -136,28 +138,12 @@ function initFileTree(filepath) {
     });
   }
   
-  function generateNode(data) {
-    if (data.isDirectory) {
-      return {
-        title: data.basename,
-        folder: true,
-        key: data.path,
-        type: 'directory',
-        children: subDir
-      };
-    }
-    return {
-      title: data.basename,
-      key: data.path,
-      type: 'file'
-    };
-  }
-
   function initWebSocket(config) {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//localhost:${config.portWss}`;
     
     const fileTreeSocket = new WebSocket(wsUrl);
+    const dataDir = config.filepathFull;
 
     fileTreeSocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -165,25 +151,105 @@ function initFileTree(filepath) {
       
       const tree = $("#file-tree").fancytree("getTree");
       if (!tree) return;
+    
+      const pathHelper = {
+        split: (path) => path.split('/'),
+        join: (pathArr, len) => {
+          if (len) {
+            pathArr = pathArr.slice(0, len) 
+          }
+          return pathArr.join('/');
+        }
+      };
+      const dataDirSplitted = pathHelper.split(dataDir);
 
-      switch(data.type) {
-        case 'add':
-        case 'addDir':
-          // Добавляем новый узел
-          const parentPath = data.path.split('/').slice(0, -1).join('/');
-          const parentNode = tree.getNodeByKey(parentPath) || tree.getRootNode();
-          
-          parentNode.addChildren(generateNode(data));
-          break;
-        case 'unlink':
-        case 'unlinkDir':
+      const nodesHelper = {
+        parsePathInfo: (path) => {
+          const pathArr = pathHelper.split(path);
+          const fileName = pathArr.pop();
+          const pathDirJoined = pathHelper.join(pathArr);
+          return {pathArr, fileName, pathDirJoined};
+        },
+        addFile: (path) => {
+          const pathInfo = this.parsePathInfo(path);
+          let nodeDir = this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted(pathInfo.pathArr);
+          if (!nodeDir) {
+              return null;
+          }
+          const fileNode = generateNode({
+            basename: pathInfo.fileName,
+            path: path,
+            isDirectory: false
+          });
+          nodeDir.addChildren(fileNode);
+          return this.findNode(path);
+        },
+        addDir: (path) => {
+          const pathInfo = this.parsePathInfo(path);
+          return this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted([...pathArr, pathInfo]);
+        },
+        addDirSplitted: (pathSplitted) => {
+          let node = tree.getRootNode();
+          let index = dataDirSplitted.length;
+          let isEndReached = false; 
+          while (index < pathSplitted.length) {
+            const currentIndex = index;
+            index++;
+
+            const currentDir = pathHelper.join(pathSplitted, currentIndex);
+            if (!isEndReached) {
+              const newNode = this.findNode(currentDir);
+              if (newNode) {
+                node = newNode;
+                continue;
+              }
+              isEndReached = true;
+            }
+            const nextNode = generateNode({
+              basename: pathSplitted[currentIndex],
+              path: currentDir,
+              isDirectory: false
+            });
+            node.addChildren(nextNode);
+            node = tree.getNodeByKey(currentDir);
+          }
+          return node;
+        },
+        remove: (path) => {
           // Удаляем узел
-          const nodeToRemove = tree.getNodeByKey(data.path);
+          const nodeToRemove = tree.getNodeByKey(path);
           if (nodeToRemove) {
             nodeToRemove.remove();
           }
+          return null;
+        },
+        findNode: (path) => (dataDir === path) ? tree.getRootNode() : tree.getNodeByKey(path),
+        generateNode: (data) => (data.isDirectory) ? {
+              title: data.basename,
+              folder: true,
+              key: data.path,
+              type: 'directory',
+              children: subDir
+            } : {
+              title: data.basename,
+              key: data.path,
+              type: 'file'
+            },
+      };
+
+      switch(data.type) {
+        case 'add':
+          // Добавляем новый узел
+          nodesHelper.addFile(data.path);
           break;
-          
+        case 'addDir':
+          // Добавляем новый узел
+          nodesHelper.addDir(data.path);
+          break;
+        case 'unlink':
+        case 'unlinkDir':
+          nodesHelper.remove(data.path);
+          break;
         case 'change':
           // Обновляем файл (если он открыт в редакторе)
           if (currentFilePath === data.path) {

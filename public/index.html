@@ -7,9 +7,10 @@
   <link href="style.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.0/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet">
-  
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">
   <script src="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.14.1/jquery-ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.0/dist/jquery.fancytree-all-deps.min.js"></script>
   <script src="https://unpkg.com/split.js/dist/split.min.js"></script>
 </head>
@@ -21,7 +22,7 @@
       <div id="app-version" class="version-badge">1.0</div>
     </div>
     <div id="path-display" class="header-block-right">
-      Путь: <span id="current-path">загрузка...</span>
+      Source path: <span id="current-path">loading...</span>
     </div>
   </div>
   
@@ -41,7 +42,19 @@
         </div>
       </div>
       <!-- Нижний блок, занимающий всё оставшееся пространство -->
-      <div class="left-bottom" id="file-tree">
+      <div class="left-middle" id="file-tree"></div>
+      <!-- Нижний блок с панелью кнопок -->
+      <div class="left-bottom">
+        <div class="button-container">
+          <div class="block-left">
+            <button id="create-directory">Create Folder</button>
+            <button id="create-file">Create File</button>
+            <button id="rename-item">Rename</button>
+            <button id="delete-item" class="red-button">Delete</button>
+          </div>
+          <div class="block-right">
+          </div>
+        </div>
       </div>
     </div>
 
@@ -53,7 +66,9 @@
       <!-- Нижний блок с панелью кнопок -->
       <div class="right-bottom">
         <div class="button-container">
-          <button id="save-btn">Save</button>
+            <button id="save-btn">Save</button>
+            <div id="opened-file-path-display" class="header-block-right">
+            </div>
         </div>
       </div>
     </div>

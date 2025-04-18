@@ -84,6 +84,7 @@ app.get('/config', (req, res) => {
     title: config.app.title,
     version: config.app.version,
     filepath: config.navigation.filepath,
+    filepathFull: path.resolve(config.navigation.filepath),
     portWss: config.server.portWss,
     isDev: isDev
   });
@@ -107,9 +108,9 @@ const loadDir = async (absolutePath) => {
     const items = await fs.readdir(absolutePath, { withFileTypes: true });
     const resultDir = [];
     const resultFiles = [];
-
     for (const item of items) {
-        const localPath = path.join(item.parentPath, item.name);
+        const localDirPath = path.resolve(item.parentPath);
+        const localPath = path.join(localDirPath, item.name);
         if (item.isDirectory()) {
             const subDir = await loadDir(localPath)
             // Добавляем директорию
@@ -206,6 +207,21 @@ app.post('/api/file', express.json(), async (req, res) => {
     });
 });
 
+app.post('/api/directory', express.json(), async (req, res) => {
+  const requestedPath = req.query.path;
+  const absolutePath = path.resolve(requestedPath);
+  if (absolutePath.startsWith(path.resolve(config.server.staticFiles))) {
+      res.status(403).json({ error: 'Доступ запрещён' });
+  }
+  try {
+    if (!fs.existsSync(folderName)) {
+      fs.mkdirSync(folderName, { recursive: true} );
+    }
+  } catch (err) {
+    console.error(err);
+  }
+});
+
 app.post('/api/file/rename', express.json(), async (req, res) => {
       const { pathOld, pathNew } = req.body;
       const pathsToCheck = [pathOld, pathNew]
@@ -270,7 +286,7 @@ app.delete('/api/file', async (req, res) => {
       const messageErrText = `Ошибка при удалении ${requestedPath}`
       if (stats.isDirectory()) {
         // Удаление директории
-        fs.rmdir(absolutePath, { recursive: true }, err => {
+        fs.rm(absolutePath, { recursive: true, force: true }, err => {
             if (err) {
               res.status(500).json({ 
                 error: messageErrText,
