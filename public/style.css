@@ -19,18 +19,23 @@
 
   #split-container {
     display: flex;
-    height: 80vh;
+    height: 100%;
     border: 1px solid #ddd;
   }
 
-  .panel {
+  .pane {
     flex: 1;
     padding: 10px;
     overflow: auto;
   }
-  #left-panel { 
-    background: #f9f9f9;
-   }
+  
+  /* Стили для разделителя (гуттера), создаваемого Split.js */
+  .gutter {
+    background-color: #bbb;
+    cursor: col-resize;
+    width: 10px;
+  }
+
   .dev-mode {
       outline: 2px solid red;
   }
@@ -76,10 +81,10 @@
   }
 
   /* FancyTree */
-#file-tree {
-    overflow: auto;
-    margin-top: 10px;
-}
+  #file-tree {
+      overflow: auto;
+      margin-top: 10px;
+  }
   
   .tree-toolbar {
     padding: 5px;

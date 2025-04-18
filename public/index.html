@@ -12,6 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.0/dist/jquery.fancytree-all-deps.min.js"></script>
+    <script src="https://unpkg.com/split.js/dist/split.min.js"></script>
 </head>
 <body>
   <div id="header">
@@ -25,7 +26,7 @@
   </div>
 
   <div id="split-container">
-    <div id="left-panel" class="panel">
+    <div id="left-panel" class="split-pane left-pane">
         <div class="tree-toolbar">
             <button id="refresh-tree" title="Обновить">
               <i class="icon-refresh">↻</i>
@@ -34,7 +35,7 @@
           </div>
           <div id="file-tree"></div>
     </div>
-    <div id="right-panel" class="panel">
+    <div id="right-panel" class="split-pane right-pane">
         <div>
             <div id="json-editor"></div>
         </div>
@@ -43,7 +44,15 @@
         </div>
     </div>
   </div>
-
   <script src="script.js"></script>
+  <script>
+    // Инициализация Split.js для управления двумя колонками
+    Split(['#left-panel', '#right-panel'], {
+      sizes: [25, 75],     // начальное распределение ширины
+      gutterSize: 10,      // ширина разделителя в пикселях
+      minSize: 50,         // минимальная ширина каждого блока в пикселях
+      cursor: 'col-resize' // вид курсора при наведении на разделитель
+    });
+  </script>
 </body>
 </html>
