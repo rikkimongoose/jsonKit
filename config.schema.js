@@ -12,9 +12,7 @@ const configSchema = Joi.object({
     }).optional()
   }).required(),
   app: Joi.object({
-    title: Joi.string().min(1).required().default("JSON Kit"),
-    version: Joi.string().min(1).required().default("0.0"),
-    enableSplitPanel: Joi.boolean().default(true)
+    version: Joi.string().min(1).required().default("0.0")
   }).required(),
   navigation: Joi.object({
     jsonDirectory: Joi.string()
@@ -24,7 +22,8 @@ const configSchema = Joi.object({
           return helpers.error('any.invalid');
         }
         return value;
-      }, 'path validation')
+      }, 'path validation'),
+    extData: Joi.object().default(null)
   }).default()
 });
 

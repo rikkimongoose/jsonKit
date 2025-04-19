@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/rikkimongoose/jsonKit.git"
   },
-  "license": "MIT",
+  "license": "GNU GPL v3",
   "author": "Rikki Mongoose",
   "type": "commonjs",
   "main": "index.js",
@@ -32,6 +32,7 @@
     "joi": "^17.13.3",
     "jquery.fancytree": "^2.38.5",
     "jsoneditor": "^10.2.0",
+    "jsonpath": "^1.1.1",
     "morgan": "^1.10.0",
     "ws": "^8.18.1"
   }

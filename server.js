@@ -4,6 +4,7 @@ const fs = require('fs-extra');
 const chokidar = require('chokidar');
 const Joi = require('joi');
 const WebSocket = require('ws');
+const jsonpath = require('jsonpath');
 const configSchema = require('./config.schema');
 
 require('dotenv').config()
@@ -89,6 +90,7 @@ app.get('/config', (req, res) => {
     version: config.app.version,
     jsonDirectory: jsonDir,
     jsonDirectoryFull: path.resolve(jsonDir),
+    extData: config.navigation.extData,
     portWss: config.server.portWss,
     isDev: isDev
   });
@@ -102,6 +104,53 @@ const configWatcher = chokidar.watch('./config.json', {
     pollInterval: 100
   }
 });
+
+function parseJson(jsonSource) {
+  try {
+    return JSON.parse(jsonSource);
+  } catch (error) {
+    console.error(`Ошибка при разборе JSON: ${error.message}`);
+    return null;
+  }
+}
+
+function readFile(localPath) {
+  try {
+    // Пытаемся загрузить данные из файла
+    return fs.readFileSync(localPath, 'utf-8');
+  } catch (error) {
+    // В случае ошибки выводим её в console.error
+    console.error(`Ошибка при чтении файла: ${error.message}`);
+    return null; // Возвращаем null, если произошла ошибка
+  }
+}
+
+function loadExtData(extData, localPath) {
+    if(!extData) {
+      return null;
+    }
+    const jsonSource = readFile(localPath);
+    if(!jsonSource) {
+      return null;
+    }
+    const jsonData = parseJson(jsonSource);
+    if(!jsonData) {
+      return null;
+    }
+
+    const resultData = {};
+    // Перебор всех собственных свойств объекта
+    for (const key in extData) {
+      // Проверяем, что свойство принадлежит самому объекту, а не его прототипу
+      if (!Object.prototype.hasOwnProperty.call(extData, key)) {
+        continue;
+      }
+      const jsonCmd = extData[key];
+      const result = jsonpath.query(jsonData, jsonCmd);
+      resultData[key] = [...new Set(result)];
+    }
+    return resultData;
+}
 
 const loadDir = async (absolutePath) => {
     // Безопасность: проверяем, что путь внутри разрешённой директории
@@ -126,11 +175,13 @@ const loadDir = async (absolutePath) => {
                 children: subDir
             });
         } else if (item.name.endsWith('.json')) {
+            const extData = loadExtData(config.navigation.extData, localPath);
             // Добавляем только JSON-файлы
             resultFiles.push({
                 title: item.name,
                 key: localPath,
-                type: 'file'
+                type: 'file',
+                extData: extData
             });
         }
     }
@@ -211,7 +262,7 @@ app.post('/api/file', express.json(), async (req, res) => {
     });
 });
 
-app.post('/api/directory', express.json(), async (req, res) => {
+app.post('/api/files', express.json(), async (req, res) => {
   const requestedPath = req.query.path;
   const absolutePath = path.resolve(requestedPath);
   if (absolutePath.startsWith(path.resolve(config.server.staticFiles))) {

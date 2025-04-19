@@ -1,3 +1,21 @@
+// Toastr config
+toastr.options = {
+  "closeButton": true,              // Отображение кнопки "Закрыть"
+  "debug": false,                   // Отключение режима отладки
+  "newestOnTop": false,             // Расположение новых сообщений вверху
+  "progressBar": true,              // Отображение прогресс-бара
+  "positionClass": "toast-top-right", // Позиция (например, в правом верхнем углу)
+  "preventDuplicates": true,        // Запрет на повторяющиеся сообщения
+  "showDuration": "300",            // Длительность показа (мс)
+  "hideDuration": "1000",           // Длительность скрытия (мс)
+  "timeOut": "5000",                // Время автоматического скрытия (мс)
+  "extendedTimeOut": "1000",        // Расширенное время для взаимодействия (мс)
+  "showEasing": "swing",            // Анимация появления
+  "hideEasing": "linear",           // Анимация скрытия
+  "showMethod": "fadeIn",           // Метод появления
+  "hideMethod": "fadeOut"           // Метод скрытия
+};
+
 // DOM элементы
 const appVersionElement = document.getElementById('app-version')
 const currentPathElement = document.getElementById('current-path');
@@ -16,6 +34,7 @@ function initJSONEditor() {
     modes: ['tree', 'code', 'form', 'text'],
     onError: (err) => {
       console.error('JSONdata.pathEditor error:', err);
+      toastr.error(err.message, "Ошибка JSONdata.pathEditor");
     }/*,
     onChange: () => {
       // Автосохранение при изменениях (опционально)
@@ -137,6 +156,10 @@ function initFileTree(filepath) {
   }
   
   function initWebSocket(config) {
+    if (!config) {
+      return;
+    }
+    
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//localhost:${config.portWss}`;
     
@@ -281,6 +304,86 @@ function initHotReload() {
         };
     }
 }
+function initCreateDirDialog() {
+  const $createDirDialog = $("#file-dialog");
+  const dialog = $createDirDialog.dialog({
+    autoOpen: false, // Диалог не открывается автоматически
+    modal: true,     // Блокирует взаимодействие с остальной страницей
+    buttons: {
+      "OK": function() {
+        // Проверка валидации формы
+        if ($("#file-form").valid()) {
+          var fileName = $("#filename").val();
+          // Выполняем fetch POST запрос на /api/file с объектом { path: "<имя файла>" }
+          fetch("/api/file", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ path: fileName })
+          })
+          .then(function(response) {
+            if (!response.ok) {
+              throw new Error("Ошибка сети");
+            }
+            return response.json();
+          })
+          .then(function(data) {
+            // Если запрос успешен, закрываем диалог
+            dialog.dialog("close");
+          })
+          .catch(function(error) {
+            console.error("Ошибка запроса:", error);
+          });
+        }
+      },
+      "Cancel": function() {
+        $(this).dialog("close");
+      }
+    },
+    close: function() {
+      // Сброс формы при закрытии диалога
+      $("#file-form")[0].reset();
+      $("#file-form").validate().resetForm();
+    }
+  });
+
+  // Инициализация плагина валидации для формы
+  $("#file-form").validate({
+    rules: {
+      filename: {
+        required: true
+      }
+    },
+    messages: {
+      filename: {
+        required: "Пожалуйста, введите имя директории."
+      }
+    }
+  });
+
+  // Открытие диалога по нажатию на кнопку
+  $("#open-dialog").on("click", function() {
+    dialog.dialog("open");
+  });
+}
+
+function initCreateFileDialog() {
+
+}
+function initRenameFileDialog() {
+
+}
+function initRemoveDialog() {
+
+}
+
+function initDialogs() {
+  initCreateDirDialog();
+  initCreateFileDialog();
+  initRenameFileDialog();
+  initRemoveDialog();
+}
 
 // Первоначальная загрузка
 document.addEventListener('DOMContentLoaded', () => {
@@ -295,12 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
           currentPathElement.textContent = config.jsonDirectory;
           initFileTree(config.jsonDirectoryFull);
           initWebSocket(config);
-          updateUI(config)
+          updateUI(config);
+          initDialogs();
         })
         .catch(error => {
             console.error('Ошибка загрузки конфигурации:', error);
             currentPathElement.textContent = 'Ошибка загрузки конфигурации';
         });
+
     
     // Инициализация hot-reload в режиме разработки
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
