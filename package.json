@@ -33,6 +33,7 @@
     "jquery.fancytree": "^2.38.5",
     "jsoneditor": "^10.2.0",
     "jsonpath": "^1.1.1",
+    "lodash": "^4.17.21",
     "morgan": "^1.10.0",
     "ws": "^8.18.1"
   }

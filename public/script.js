@@ -105,7 +105,8 @@ function updateUI(config) {
     }  
 }
 
-function initFileTree(filepath) {
+function initFileTree(config) {
+    const filepath = config.jsonDirectoryFull;
     const dataSourceRequest = `/api/files?path=${encodeURIComponent(filepath)}`
     $("#file-tree").fancytree({
       extensions: ["filter"],
@@ -136,12 +137,35 @@ function initFileTree(filepath) {
   
     // Фильтрация дерева
     $("#tree-filter").on("keyup", function(e) {
-      const filter = $(this).val();
-      if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(filter) === "") {
+      const filterStr = $(this).val();
+      if (e && e.which === $.ui.keyCode.ESCAPE || filterStr.trim() === "") {
         $(this).val("");
         $("#file-tree").fancytree("getTree").clearFilter();
         return;
       }
+
+      const filter = (node) => {
+          // Приводим к нижнему регистру для нечувствительности к регистру
+          var title = node.title ? node.title.trim().toLowerCase() : "";
+          var filterStrLower = filterStr.trim().toLowerCase();
+
+          if (title.includes(filterStrLower)) {
+            return true;
+          }
+          if (filterStrLower.length >= config.extDataFilterSize && node.data && node.data.extData && !_.isEmpty(node.data.extData)) {
+            const found = _.find(node.data.extData, 
+            (items) => 
+               _.find(items, (item) => item.trim().toLowerCase().includes(filterStrLower)));
+
+          
+            // Получаем дополнительное поле extData, если оно задано
+            return _.some(node.data.extData, 
+                    (items) => 
+                       _.some(items, (item) => item.trim().toLowerCase().includes(filterStrLower))
+                  );          
+          }
+          return false;
+      };
       
       $("#file-tree").fancytree("getTree").filterNodes(filter, {
         autoExpand: true
@@ -159,7 +183,7 @@ function initFileTree(filepath) {
     if (!config) {
       return;
     }
-    
+
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//localhost:${config.portWss}`;
     
@@ -396,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(config => {
           appVersionElement.textContent = config.version;
           currentPathElement.textContent = config.jsonDirectory;
-          initFileTree(config.jsonDirectoryFull);
+          initFileTree(config);
           initWebSocket(config);
           updateUI(config);
           initDialogs();

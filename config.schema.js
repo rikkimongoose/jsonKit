@@ -23,6 +23,7 @@ const configSchema = Joi.object({
         }
         return value;
       }, 'path validation'),
+      extDataFilterSize:  Joi.number().integer().min(1).max(65535).default(2).required(),
     extData: Joi.object().default(null)
   }).default()
 });

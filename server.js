@@ -5,6 +5,8 @@ const chokidar = require('chokidar');
 const Joi = require('joi');
 const WebSocket = require('ws');
 const jsonpath = require('jsonpath');
+const _ = require('lodash');
+
 const configSchema = require('./config.schema');
 
 require('dotenv').config()
@@ -92,6 +94,7 @@ app.get('/config', (req, res) => {
     jsonDirectoryFull: path.resolve(jsonDir),
     extData: config.navigation.extData,
     portWss: config.server.portWss,
+    extDataFilterSize: config.navigation.extDataFilterSize,
     isDev: isDev
   });
 });
@@ -140,15 +143,10 @@ function loadExtData(extData, localPath) {
 
     const resultData = {};
     // Перебор всех собственных свойств объекта
-    for (const key in extData) {
-      // Проверяем, что свойство принадлежит самому объекту, а не его прототипу
-      if (!Object.prototype.hasOwnProperty.call(extData, key)) {
-        continue;
-      }
-      const jsonCmd = extData[key];
+    _.forOwn(extData, (jsonCmd, key) => {
       const result = jsonpath.query(jsonData, jsonCmd);
       resultData[key] = [...new Set(result)];
-    }
+    });
     return resultData;
 }
 
@@ -172,7 +170,8 @@ const loadDir = async (absolutePath) => {
                 folder: true,
                 key: localPath,
                 type: 'directory',
-                children: subDir
+                children: subDir,
+                extData: {}
             });
         } else if (item.name.endsWith('.json')) {
             const extData = loadExtData(config.navigation.extData, localPath);

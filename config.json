@@ -9,8 +9,10 @@
     },
     "navigation": {
         "jsonDirectory": "./examples",
+        "extDataFilterSize": 2,
         "extData": {
-          "urlPath": "$.mappings[*].request.urlPath"
+          "urlPath": "$.mappings[*].request.urlPath",
+          "urlPathTemplate": "$.mappings[*].request.urlPathTemplate"
         }
     }
 }
