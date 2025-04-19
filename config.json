@@ -10,6 +10,6 @@
       "enableSplitPanel": true
     },
     "navigation": {
-       "filepath": "./examples"
+       "jsonDirectory": "./examples"
     }
 }

@@ -7,7 +7,7 @@
   <link href="style.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.0/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">
+  <link href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css" rel="stylesheet" >
   <script src="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.2/dist/jsoneditor.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://code.jquery.com/ui/1.14.1/jquery-ui.js"></script>
@@ -21,7 +21,7 @@
       <div><h1 id="app-title">jsonKit</h1></div>
       <div id="app-version" class="version-badge">1.0</div>
     </div>
-    <div id="path-display" class="header-block-right">
+    <div id="path-display" class="header-block-right path-display">
       Source path: <span id="current-path">loading...</span>
     </div>
   </div>
@@ -67,8 +67,7 @@
       <div class="right-bottom">
         <div class="button-container">
             <button id="save-btn">Save</button>
-            <div id="opened-file-path-display" class="header-block-right">
-            </div>
+            <div id="opened-file-path-display" class="header-block-right path-display">no file</div>
         </div>
       </div>
     </div>

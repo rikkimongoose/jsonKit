@@ -7,7 +7,7 @@ const rightPanelElement = document.getElementById('right-panel');
 const openedFilePathDisplayElement = document.getElementById('opened-file-path-display');
 
 let editor;
-let currentFilePath = "";
+let currentJsonDirectory = "";
 let fileTreeSocket;
 
 function initJSONEditor() {
@@ -29,19 +29,19 @@ function initJSONEditor() {
 }
 
 function saveCurrentFile() {
-    if (!currentFilePath) return;
+    if (!currentJsonDirectory) return;
     const json = editor.get();
-    fetch(`/api/file?path=${encodeURIComponent(currentFilePath)}`, {
+    fetch(`/api/file?path=${encodeURIComponent(currentJsonDirectory)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(json, null, 2)
       })
       .then(response => {
             if (response.ok) {
-                console.log(`Файл ${currentFilePath} успешно сохранён`, response)
+                console.log(`Файл ${currentJsonDirectory} успешно сохранён`, response)
                 return response.json()
             }
-            throw new Error(`Ошибка: не удаётся сохранить файл ${currentFilePath}:`); 
+            throw new Error(`Ошибка: не удаётся сохранить файл ${currentJsonDirectory}:`); 
         })
       .catch(error => {
           console.error(error);
@@ -64,7 +64,7 @@ function showFileContent(filePath) {
             if (!editor) {
                 initJSONEditor();
             }
-            openedFilePathDisplayElement.textContent = filePath;
+            openedFilePathDisplayElement.textContent = filePath || "no file";
             editor.set(json);
             editor.expandAll();
         })
@@ -79,7 +79,7 @@ function updateUI(config) {
     // Обновляем заголовок и путь
     appTitleElement.textContent = config.title;
     appVersion.textContent = config.version;
-    currentPathElement.textContent = config.filepath;
+    currentPathElement.textContent = config.jsonDirectory;
     
     // Добавляем индикатор разработки
     if (config.isDev) {
@@ -111,8 +111,8 @@ function initFileTree(filepath) {
         const node = data.node;
         if (!node.data) return;        
         if (node.type === 'file') {
-            currentFilePath = node.key;
-            showFileContent(currentFilePath);
+            currentJsonDirectory = node.key;
+            showFileContent(currentJsonDirectory);
         }
       }
     });
@@ -143,7 +143,7 @@ function initFileTree(filepath) {
     const wsUrl = `${wsProtocol}//localhost:${config.portWss}`;
     
     const fileTreeSocket = new WebSocket(wsUrl);
-    const dataDir = config.filepathFull;
+    const dataDir = config.jsonDirectoryFull;
 
     fileTreeSocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -252,7 +252,7 @@ function initFileTree(filepath) {
           break;
         case 'change':
           // Обновляем файл (если он открыт в редакторе)
-          if (currentFilePath === data.path) {
+          if (currentJsonDirectory === data.path) {
             showFileContent(data.path);
           }
           break;
@@ -294,8 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(config => {
           document.getElementById('app-title').textContent = config.title;
-          document.getElementById('current-path').textContent = config.filepath;
-          initFileTree(config.filepath);
+          document.getElementById('current-path').textContent = config.jsonDirectory;
+          initFileTree(config.jsonDirectoryFull);
           initWebSocket(config);
           updateUI(config)
         })

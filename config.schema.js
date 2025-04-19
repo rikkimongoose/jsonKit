@@ -17,7 +17,7 @@ const configSchema = Joi.object({
     enableSplitPanel: Joi.boolean().default(true)
   }).required(),
   navigation: Joi.object({
-    filepath: Joi.string()
+    jsonDirectory: Joi.string()
       .default('.')
       .custom((value, helpers) => {
         if (value.includes('..')) {

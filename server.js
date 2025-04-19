@@ -26,7 +26,7 @@ function loadConfig() {
     }
 
     if (isDev) {
-      console.log('[DEV] Конфиг загружен. Текущий путь:', value.navigation.filepath);
+      console.log('[DEV] Конфиг загружен. Текущий путь:', value.navigation.jsonDirectory);
     }
     return value;
   } catch (err) {
@@ -78,13 +78,18 @@ if (isDev) {
 // Раздача статических файлов
 app.use(express.static(path.join(__dirname, config.server.staticFiles)));
 
+function loadCurrentJsonDir(config) {
+  return process.env.JSON_DIR || config.navigation.jsonDirectory;
+}
+
 // Основной endpoint для конфига
 app.get('/config', (req, res) => {
+  const jsonDir = loadCurrentJsonDir(config);
   res.json({
     title: config.app.title,
     version: config.app.version,
-    filepath: config.navigation.filepath,
-    filepathFull: path.resolve(config.navigation.filepath),
+    jsonDirectory: jsonDir,
+    jsonDirectoryFull: path.resolve(jsonDir),
     portWss: config.server.portWss,
     isDev: isDev
   });
@@ -346,7 +351,7 @@ function broadcast(data) {
 }
 
 // Инициализация watcher
-const watcher = chokidar.watch(config.navigation.filepath, {
+const watcher = chokidar.watch(config.navigation.jsonDirectory, {
   ignored: /(^|[\/\\])\../, // игнорируем скрытые файлы
   persistent: true,
   ignoreInitial: true, // игнорируем начальное сканирование
@@ -409,5 +414,5 @@ watcher
     console.error('Watcher error:', error);
   })
   .on('ready', () => {
-    console.log(`Initial scan complete. Ready for changes in ${config.navigation.filepath}`);
+    console.log(`Initial scan complete. Ready for changes in ${config.navigation.jsonDirectory}`);
   });

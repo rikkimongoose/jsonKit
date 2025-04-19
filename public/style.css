@@ -23,7 +23,7 @@ html, body {
   margin-bottom: 20px;
 }
 
-#path-display {
+.path-display {
   padding: 8px;
   background: #f0f0f0;
   color: #000;
