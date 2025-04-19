@@ -111,7 +111,8 @@ docker run -d -p 3000:3000 --name jsonkit jsonkit
         "jsonDirectory": "./examples",
         "extDataFilterSize": 2,
         "extData": {
-          "urlPath": "$.mappings[*].request.urlPath"
+          "urlPath": "$.mappings[*].request.urlPath",
+          "urlPathTemplate": "$.mappings[*].request.urlPathTemplate"
         }
     }
 }
