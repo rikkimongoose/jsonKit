@@ -45,9 +45,7 @@ const liveReloadHeader = {
 };
 
 function makeLiveReload(res) {
-    for (let header in liveReloadHeader) {
-        res.setHeader(header, liveReloadHeader[header]);
-    }
+    _.forOwn(liveReloadHeader, (value, header) => res.setHeader(header, value));
 }
 
 // Создание Express-приложения
@@ -163,7 +161,7 @@ const loadDir = async (absolutePath) => {
         const localDirPath = path.resolve(item.parentPath);
         const localPath = path.join(localDirPath, item.name);
         if (item.isDirectory()) {
-            const subDir = await loadDir(localPath)
+            const subDir = await loadDir(localPath);
             // Добавляем директорию
             resultDir.push({
                 title: item.name,
@@ -414,11 +412,14 @@ const watcher = chokidar.watch(config.navigation.jsonDirectory, {
 watcher
   .on('add', filePath => {
     if (filePath.endsWith('.json') || !path.extname(filePath)) {
+
+      const extData = loadExtData(config.navigation.extData, filePath);
       broadcast({
         type: 'add',
-        path: filePath,
+        path: path.resolve(filePath),
         basename: path.basename(filePath),
-        isDirectory: !path.extname(filePath),
+        isDirectory: false,
+        extData: extData,
         time: new Date().toISOString()
       });
     }
@@ -426,16 +427,18 @@ watcher
   .on('addDir', dirPath => {
     broadcast({
       type: 'addDir',
-      path: dirPath,
+      path: path.resolve(dirPath),
       isDirectory: true,
       time: new Date().toISOString()
     });
   })
   .on('change', filePath => {
     if (filePath.endsWith('.json')) {
+      const extData = loadExtData(config.navigation.extData, filePath);
       broadcast({
         type: 'change',
-        path: filePath,
+        path: path.resolve(filePath),
+        extData: extData,
         isDirectory: false,
         time: new Date().toISOString()
       });
@@ -445,7 +448,7 @@ watcher
     if (filePath.endsWith('.json') || !path.extname(filePath)) {
       broadcast({
         type: 'unlink',
-        path: filePath,
+        path: path.resolve(filePath),
         isDirectory: !path.extname(filePath),
         time: new Date().toISOString()
       });
@@ -454,7 +457,7 @@ watcher
   .on('unlinkDir', dirPath => {
     broadcast({
       type: 'unlinkDir',
-      path: dirPath,
+      path: path.resolve(dirPath),
       isDirectory: true,
       time: new Date().toISOString()
     });

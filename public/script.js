@@ -24,7 +24,7 @@ const rightPanelElement = document.getElementById('right-panel');
 const openedFilePathDisplayElement = document.getElementById('opened-file-path-display');
 
 let editor;
-let currentJsonDirectory = "";
+let currentJsonFile = "";
 let fileTreeSocket;
 
 function initJSONEditor() {
@@ -47,19 +47,19 @@ function initJSONEditor() {
 }
 
 function saveCurrentFile() {
-    if (!currentJsonDirectory) return;
+    if (!currentJsonFile) return;
     const json = editor.get();
-    fetch(`/api/file?path=${encodeURIComponent(currentJsonDirectory)}`, {
+    fetch(`/api/file?path=${encodeURIComponent(currentJsonFile)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(json, null, 2)
       })
       .then(response => {
             if (response.ok) {
-                console.log(`Файл ${currentJsonDirectory} успешно сохранён`, response)
+                console.log(`Файл ${currentJsonFile} успешно сохранён`, response)
                 return response.json()
             }
-            throw new Error(`Ошибка: не удаётся сохранить файл ${currentJsonDirectory}:`); 
+            throw new Error(`Ошибка: не удаётся сохранить файл ${currentJsonFile}:`); 
         })
       .catch(error => {
           console.error(error);
@@ -129,8 +129,8 @@ function initFileTree(config) {
         const node = data.node;
         if (!node.data) return;        
         if (node.type === 'file') {
-            currentJsonDirectory = node.key;
-            showFileContent(currentJsonDirectory);
+            currentJsonFile = node.key;
+            showFileContent(currentJsonFile);
         }
       }
     });
@@ -215,7 +215,7 @@ function initFileTree(config) {
           const pathDirJoined = pathHelper.join(pathArr);
           return {pathArr, fileName, pathDirJoined};
         },
-        addFile: (path) => {
+        addFile: (path, extData) => {
           const pathInfo = this.parsePathInfo(path);
           let nodeDir = this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted(pathInfo.pathArr);
           if (!nodeDir) {
@@ -224,7 +224,8 @@ function initFileTree(config) {
           const fileNode = generateNode({
             basename: pathInfo.fileName,
             path: path,
-            isDirectory: false
+            isDirectory: false,
+            extData: extData
           });
           nodeDir.addChildren(fileNode);
           return this.findNode(path);
@@ -285,7 +286,7 @@ function initFileTree(config) {
       switch(data.type) {
         case 'add':
           // Добавляем новый узел
-          nodesHelper.addFile(data.path);
+          nodesHelper.addFile(data.path, data.extData);
           break;
         case 'addDir':
           // Добавляем новый узел
@@ -297,8 +298,12 @@ function initFileTree(config) {
           break;
         case 'change':
           // Обновляем файл (если он открыт в редакторе)
-          if (currentJsonDirectory === data.path) {
+          if (currentJsonFile === data.path) {
             showFileContent(data.path);
+          }
+          const nodeToUpdate = tree.getNodeByKey(data.path);
+          if (nodeToUpdate) {
+            nodeToUpdate.data.extData = data.extData;
           }
           break;
       }
