@@ -86,7 +86,6 @@ function loadCurrentJsonDir(config) {
 app.get('/config', (req, res) => {
   const jsonDir = loadCurrentJsonDir(config);
   res.json({
-    title: config.app.title,
     version: config.app.version,
     jsonDirectory: jsonDir,
     jsonDirectoryFull: path.resolve(jsonDir),

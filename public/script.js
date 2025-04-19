@@ -1,6 +1,5 @@
 // DOM элементы
-const appTitleElement = document.getElementById('app-title');
-const appVersion = document.getElementById('app-version')
+const appVersionElement = document.getElementById('app-version')
 const currentPathElement = document.getElementById('current-path');
 const leftPanelElement = document.getElementById('left-panel');
 const rightPanelElement = document.getElementById('right-panel');
@@ -77,8 +76,7 @@ function showFileContent(filePath) {
 // Функция для обновления интерфейса
 function updateUI(config) {
     // Обновляем заголовок и путь
-    appTitleElement.textContent = config.title;
-    appVersion.textContent = config.version;
+    appVersionElement.textContent = config.version;
     currentPathElement.textContent = config.jsonDirectory;
     
     // Добавляем индикатор разработки
@@ -293,8 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(config => {
-          document.getElementById('app-title').textContent = config.title;
-          document.getElementById('current-path').textContent = config.jsonDirectory;
+          appVersionElement.textContent = config.version;
+          currentPathElement.textContent = config.jsonDirectory;
           initFileTree(config.jsonDirectoryFull);
           initWebSocket(config);
           updateUI(config)

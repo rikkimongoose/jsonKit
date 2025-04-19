@@ -5,15 +5,26 @@ html, body {
   height: 100%;
 }
 
+#app-title {
+  z-index: 1;
+  position: relative;
+}
+
+#app-logo {
+  height: 40px;
+}
+
 .version-badge {
+  position: relative;
   background: #666;
   color: white;
   padding: 2px 6px;
   border-radius: 10px;
   font-size: 0.8em;
   float: right;
-  margin-top: -10px;
+  margin-top: -20px;
   margin-right: -20px;
+  z-index: 2;
 }
 
 #header {
