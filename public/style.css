@@ -166,6 +166,14 @@ html, body {
   flex-grow: 1;
 }
 
+.form-dialog {
+  display: flex;
+}
+
+.input-dialog {
+  flex-grow: 1;
+}
+
 ul.fancytree-container {
   height: calc(100% - 10px);
 }

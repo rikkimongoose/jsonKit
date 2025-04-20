@@ -108,7 +108,7 @@ function showFileContent(filePath) {
             if (!editor) {
                 initJSONEditor();
             }
-            openedFilePathDisplayElement.textContent = filePath || "no file";
+            openedFilePathDisplayElement.textContent = filePath || "no file selected";
             editor.set(json);
             editor.expandAll();
         })
@@ -127,7 +127,7 @@ function updateUI(config) {
     // Добавляем индикатор разработки
     if (config.isDev) {
         document.body.classList.add('dev-mode');
-        Logger.Info('[Frontend DEV] Режим разработки активен');
+        Logger.Info('[Frontend DEV] Режим разработки активирован');
     }  
 }
 
@@ -178,12 +178,7 @@ function initFileTree(config) {
           if (title.includes(filterStrLower)) {
             return true;
           }
-          if (filterStrLower.length >= config.extDataFilterSize && node.data && node.data.extData && !_.isEmpty(node.data.extData)) {
-            const found = _.find(node.data.extData, 
-            (items) => 
-               _.find(items, (item) => item.trim().toLowerCase().includes(filterStrLower)));
-
-          
+          if (filterStrLower.length > config.extDataFilterSize && node.data && !_.isEmpty(node.data.extData)) {
             // Получаем дополнительное поле extData, если оно задано
             return _.some(node.data.extData, 
                     (items) => 
@@ -218,7 +213,7 @@ function initFileTree(config) {
 
     fileTreeSocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('FS event:', data);
+      Logger.Debug('FS event:', data);
       
       const tree = $("#file-tree").fancytree("getTree");
       if (!tree) return;
@@ -336,7 +331,7 @@ function initFileTree(config) {
     };
 
     fileTreeSocket.onclose = () => {
-      console.log('WebSocket disconnected, reconnecting...');
+      Logger.Warning('WebSocket disconnected, reconnecting...');
       setTimeout(initWebSocket, 1000);
     };
   }
@@ -348,91 +343,142 @@ function initHotReload() {
         
         eventSource.onmessage = function(e) {
             if (e.data === 'reload') {
-                console.log('[Frontend DEV] Получен сигнал перезагрузки');
+                Logger.Info('[Frontend DEV] Получен сигнал перезагрузки');
                 window.location.reload();
             }
         };
         
         eventSource.onerror = function() {
-            console.log('[Frontend DEV] SSE соединение закрыто');
+            Logger.Warning('[Frontend DEV] SSE соединение закрыто');
             eventSource.close();
         };
     }
 }
-function initCreateDirDialog() {
-  const $createDirDialog = $("#file-dialog");
-  const dialog = $createDirDialog.dialog({
-    autoOpen: false, // Диалог не открывается автоматически
-    modal: true,     // Блокирует взаимодействие с остальной страницей
-    buttons: {
-      "OK": function() {
-        // Проверка валидации формы
-        if ($("#file-form").valid()) {
-          var fileName = $("#filename").val();
-          // Выполняем fetch POST запрос на /api/file с объектом { path: "<имя файла>" }
-          fetch("/api/file", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ path: fileName })
-          })
-          .then(function(response) {
-            if (!response.ok) {
-              throw new Error("Ошибка сети");
-            }
-            return response.json();
-          })
-          .then(function(data) {
-            // Если запрос успешен, закрываем диалог
-            dialog.dialog("close");
-          })
-          .catch(function(error) {
-            console.error("Ошибка запроса:", error);
-          });
+
+const DialogFactory = {
+  create: (options) => {
+    const objPrefix = options.prefix || "file";
+    const validation = options.validation || null;
+
+    const $dialogDiv = $(`#${objPrefix}-dialog`);
+
+    const dialog = $dialogDiv.dialog({
+      autoOpen: false, // Диалог не открывается автоматически
+      modal: true,     // Блокирует взаимодействие с остальной страницей
+      buttons: {
+        "OK": function() {
+          // Проверка валидации формы
+          if (!validation || $("#file-form").valid()) {
+            var fileName = $("#filename").val();
+            // Выполняем fetch POST запрос на /api/file с объектом { path: "<имя файла>" }
+            fetch("/api/file", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ path: fileName })
+            })
+            .then(function(response) {
+              if (!response.ok) {
+                throw new Error("Ошибка сети");
+              }
+              return response.json();
+            })
+            .then(function(data) {
+              // Если запрос успешен, закрываем диалог
+              dialog.dialog("close");
+            })
+            .catch(function(error) {
+              Logger.Error(error.message, "Ошибка запроса");
+            });
+          }
+        },
+        "Cancel": function() {
+          $(this).dialog("close");
         }
       },
-      "Cancel": function() {
-        $(this).dialog("close");
+      close: function() {
+        // Сброс формы при закрытии диалога
+        $("#file-form")[0].reset();
+        $("#file-form").validate().resetForm();
       }
-    },
-    close: function() {
-      // Сброс формы при закрытии диалога
-      $("#file-form")[0].reset();
-      $("#file-form").validate().resetForm();
+    });
+  
+    if(validation) {
+      // Инициализация плагина валидации для формы
+      $("#file-form").validate(validation);
     }
-  });
 
-  // Инициализация плагина валидации для формы
-  $("#file-form").validate({
-    rules: {
-      filename: {
-        required: true
-      }
-    },
-    messages: {
-      filename: {
-        required: "Пожалуйста, введите имя директории."
+    // Открытие диалога по нажатию на кнопку
+    const $btnOpenDialog = $(`#btn-${objPrefix}`); 
+    $btnOpenDialog.on("click", function() {
+      dialog.dialog("open");
+    });
+    return this;
+  }
+};
+
+const DirectoryCreateDialog = {
+  init: () => {
+    const validation = {
+      rules: {
+        name: {
+          required: true
+        }
+      },
+      messages: {
+        name: {
+          required: "Пожалуйста, введите имя папки."
+        }
       }
     }
-  });
-
-  // Открытие диалога по нажатию на кнопку
-  $("#open-dialog").on("click", function() {
-    dialog.dialog("open");
-  });
+    const dialogItem = DialogFactory.create({
+      prefix: "directory",
+      validation
+    });
+    return this;
+  }
 }
 
-function initCreateFileDialog() {
-
+const FileCreateDialog = {
+  init: () => {
+    const validation = {
+      rules: {
+        name: {
+          required: true
+        }
+      },
+      messages: {
+        name: {
+          required: "Пожалуйста, введите имя файла."
+        }
+      }
+    }
+    const dialogItem = DialogFactory.create({
+      prefix: "file",
+      validation
+    });
+    return this;
+  }
 }
-function initRenameFileDialog() {
 
+const FileRenameDialog = {
+  init: () => {
+    const dialogItem = DialogFactory.create({
+      prefix: "file-rename"
+    });
+    return this;
+  }
 }
-function initRemoveDialog() {
 
+const RemoveDialog = {
+  init: () => {
+    const dialogItem = DialogFactory.create({
+      prefix: "file-delete"
+    });
+    return this;
+  }
 }
-
 function initSlider() {
     // Инициализация Split.js для управления двумя колонками
     Split(['#left', '#right'], {
@@ -444,10 +490,10 @@ function initSlider() {
 }
 
 function initDialogs() {
-  initCreateDirDialog();
-  initCreateFileDialog();
-  initRenameFileDialog();
-  initRemoveDialog();
+  _.each([DirectoryCreateDialog,
+    FileCreateDialog,
+    FileRenameDialog,
+    RemoveDialog], (initDialog) => initDialog.init());
 }
 
 // Первоначальная загрузка
@@ -468,13 +514,12 @@ document.addEventListener('DOMContentLoaded', () => {
           initDialogs();
         })
         .catch(error => {
-            console.error('Ошибка загрузки конфигурации:', error);
+            Logger.Error(error.message, 'Ошибка загрузки конфигурации');
             currentPathElement.textContent = 'Ошибка загрузки конфигурации';
         });
 
-    
     // Инициализация hot-reload в режиме разработки
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        initHotReload();
+    if(_.some(['localhost', '127.0.0.1'], (host) => window.location.hostname === host)) {
+      initHotReload();
     }
 });

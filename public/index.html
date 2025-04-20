@@ -51,10 +51,10 @@
       <div class="left-bottom">
         <div class="button-container">
           <div class="block-left">
-            <button id="create-directory">Create Folder</button>
-            <button id="create-file">Create File</button>
-            <button id="rename-item">Rename</button>
-            <button id="delete-item" class="red-button">Delete</button>
+            <button id="btn-directory">Create Folder</button>
+            <button id="btn-file">Create File</button>
+            <button id="btn-file-rename">Rename</button>
+            <button id="btn-file-delete" class="red-button">Delete</button>
           </div>
           <div class="block-right">
           </div>
@@ -71,42 +71,36 @@
       <div class="right-bottom">
         <div class="button-container">
             <button id="save-btn">Save</button>
-            <div id="opened-file-path-display" class="header-block-right path-display">no file</div>
+            <div id="opened-file-path-display" class="header-block-right path-display">no file selected</div>
         </div>
       </div>
     </div>
   </div>
+  <!-- Диалоговые окна -->
    <!-- Диалоговое окно с формой -->
-   <div id="file-dialog" title="Введите имя файла" style="display: none;">
-    <form id="file-form">
-      <label for="filename">Имя файла:</label>
-      <input type="text" name="filename" id="filename">
+   <div id="directory-dialog" title="Введите имя директории" style="display: none;">
+    <form id="directory-dialog-form" class="form-dialog">
+      <input type="text" name="name" id="directory-dialog-name" class="input-dialog">
     </form>
   </div>
 
    <!-- Диалоговое окно с формой -->
-   <div id="file-dialog" title="Введите имя файла" style="display: none;">
-    <form id="file-form">
-      <label for="filename">Имя файла:</label>
-      <input type="text" name="filename" id="filename">
-    </form>
-  </div>
-
-
-   <!-- Диалоговое окно с формой -->
-   <div id="file-dialog" title="Введите имя файла" style="display: none;">
-    <form id="file-form">
-      <label for="filename">Имя файла:</label>
-      <input type="text" name="filename" id="filename">
+   <div id="file-dialog" title="Введите имя директории" style="display: none;">
+    <form id="file-dialog-form" class="form-dialog">
+      <input type="text" name="name" id="directory-dialog-name" class="input-dialog">
     </form>
   </div>
 
    <!-- Диалоговое окно с формой -->
-   <div id="file-dialog" title="Введите имя файла" style="display: none;">
-    <form id="file-form">
-      <label for="filename">Имя файла:</label>
-      <input type="text" name="filename" id="filename">
+   <div id="file-rename-dialog" title="Введите новоеё имя файла" style="display: none;">
+    <form id="file-rename-dialog-form" class="form-dialog">
+      <input type="text" name="name" id="file-rename-dialog-name"  class="input-dialog">
     </form>
+  </div>
+
+   <!-- Диалоговое окно с формой -->
+   <div id="file-delete-dialog" title="Удаление файла" style="display: none;">
+    <p>Вы действительно хотите полностью удалить файл?</p>
   </div>
   <script src="script.js"></script>
 </body>
