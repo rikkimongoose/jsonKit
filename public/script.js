@@ -163,6 +163,11 @@ function initFileTree(config) {
             appState.currentJsonFile = node.key;
             showFileContent(appState.currentJsonFile);
         }
+      },
+      sort: function(a, b) {
+        if (a.data.isFolder && !b.data.isFolder) return -1;
+        if (!a.data.isFolder && b.data.isFolder) return 1;
+        return a.title.localeCompare(b.title);
       }
     });
   
@@ -204,6 +209,13 @@ function initFileTree(config) {
       tree.reload();
     });
   }
+
+
+  const sortMethod = (a, b) => {
+    const x = (a.isFolder() ? "0" : "1") + a.title.toLowerCase(),
+          y = (b.isFolder() ? "0" : "1") + b.title.toLowerCase();
+    return x === y ? 0 : x > y ? 1 : -1;
+  }
   
   function initWebSocket(config) {
     if (!config) {
@@ -235,32 +247,33 @@ function initFileTree(config) {
       const dataDirSplitted = pathHelper.split(dataDir);
 
       const nodesHelper = {
-        parsePathInfo: (path) => {
+        parsePathInfo: function (path) {
           const pathArr = pathHelper.split(path);
           const fileName = pathArr.pop();
           const pathDirJoined = pathHelper.join(pathArr);
           return {pathArr, fileName, pathDirJoined};
         },
-        addFile: (path, extData) => {
+        addFile: function(path, extData) {
           const pathInfo = this.parsePathInfo(path);
           let nodeDir = this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted(pathInfo.pathArr);
           if (!nodeDir) {
               return null;
           }
-          const fileNode = generateNode({
+          const fileNode = this.generateNode({
             basename: pathInfo.fileName,
             path: path,
             isDirectory: false,
             extData: extData
           });
           nodeDir.addChildren(fileNode);
+          nodeDir.sortChildren(sortMethod, true);
           return this.findNode(path);
         },
-        addDir: (path) => {
+        addDir: function(path) {
           const pathInfo = this.parsePathInfo(path);
-          return this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted([...pathArr, pathInfo]);
+          return this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted([...pathInfo.pathArr, pathInfo.fileName]);
         },
-        addDirSplitted: (pathSplitted) => {
+        addDirSplitted: function (pathSplitted) {
           let node = tree.getRootNode();
           let index = dataDirSplitted.length;
           let isEndReached = false; 
@@ -268,7 +281,7 @@ function initFileTree(config) {
             const currentIndex = index;
             index++;
 
-            const currentDir = pathHelper.join(pathSplitted, currentIndex);
+            const currentDir = pathHelper.join(pathSplitted, currentIndex + 1);
             if (!isEndReached) {
               const newNode = this.findNode(currentDir);
               if (newNode) {
@@ -277,17 +290,18 @@ function initFileTree(config) {
               }
               isEndReached = true;
             }
-            const nextNode = generateNode({
+            const nextNode = this.generateNode({
               basename: pathSplitted[currentIndex],
               path: currentDir,
-              isDirectory: false
+              isDirectory: true
             });
             node.addChildren(nextNode);
+            node.sortChildren(sortMethod, true);
             node = tree.getNodeByKey(currentDir);
           }
           return node;
         },
-        remove: (path) => {
+        remove: function (path) {
           // Удаляем узел
           const nodeToRemove = tree.getNodeByKey(path);
           if (nodeToRemove) {
@@ -295,18 +309,18 @@ function initFileTree(config) {
           }
           return null;
         },
-        findNode: (path) => (dataDir === path) ? tree.getRootNode() : tree.getNodeByKey(path),
-        generateNode: (data) => (data.isDirectory) ? {
+        findNode: function (path) {return (dataDir === path) ? tree.getRootNode() : tree.getNodeByKey(path)},
+        generateNode: function (data) { return (data.isDirectory) ? {
               title: data.basename,
               folder: true,
               key: data.path,
-              type: 'directory',
-              children: subDir
+              type: 'directory'
             } : {
               title: data.basename,
               key: data.path,
               type: 'file'
-            },
+            }
+          },
       };
 
       switch(data.type) {
