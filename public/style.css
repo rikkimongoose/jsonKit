@@ -185,3 +185,7 @@ ul.fancytree-container {
 .block-left {
   float: left;
 }
+
+.path-to-remove {
+  font-weight: bolder;
+}

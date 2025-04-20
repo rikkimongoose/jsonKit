@@ -24,8 +24,12 @@ const rightPanelElement = document.getElementById('right-panel');
 const openedFilePathDisplayElement = document.getElementById('opened-file-path-display');
 
 let editor;
-let currentJsonFile = "";
 let fileTreeSocket;
+
+const appState = {
+  currentJsonFile: "",
+  $treeNode: null
+};
 
 const Logger = {
   Info: function (message, title, optionsOverride) {
@@ -72,7 +76,8 @@ function initJSONEditor() {
 }
 
 function saveCurrentFile() {
-    if (!currentJsonFile) return;
+    if (!appState.currentJsonFile) return;
+    const currentJsonFile = appState.currentJsonFile;
     const json = editor.get();
     fetch(`/api/file?path=${encodeURIComponent(currentJsonFile)}`, {
         method: 'POST',
@@ -80,7 +85,7 @@ function saveCurrentFile() {
         body: JSON.stringify(json, null, 2)
     })
     .then(response => {
-        if (response.ok) {
+        if (response.ok) { 
             Logger.Success(`Файл ${currentJsonFile} успешно сохранён`);
             Logger.Debug(`Файл ${currentJsonFile} успешно сохранён`, response);
             return response.json();
@@ -155,8 +160,8 @@ function initFileTree(config) {
         const node = data.node;
         if (!node.data) return;        
         if (node.type === 'file') {
-            currentJsonFile = node.key;
-            showFileContent(currentJsonFile);
+            appState.currentJsonFile = node.key;
+            showFileContent(appState.currentJsonFile);
         }
       }
     });
@@ -319,7 +324,7 @@ function initFileTree(config) {
           break;
         case 'change':
           // Обновляем файл (если он открыт в редакторе)
-          if (currentJsonFile === data.path) {
+          if (appState.currentJsonFile === data.path) {
             showFileContent(data.path);
           }
           const nodeToUpdate = tree.getNodeByKey(data.path);
@@ -357,10 +362,38 @@ function initHotReload() {
 
 const DialogFactory = {
   create: (options) => {
-    const objPrefix = options.prefix || "file";
+    const prefix = options.prefix || "file";
     const validation = options.validation || null;
+    const inputStatic = options.inputStatic || {};
+    const inputValues = options.inputValues || {};
+    const toFetchData = options.toFetchData;
+    const isAvailable = options.isAvailable || null;
 
-    const $dialogDiv = $(`#${objPrefix}-dialog`);
+    const $dialogDiv = $(`#${prefix}-dialog`);
+
+    const $form = $(`#${prefix}-dialog-form`);
+
+    const initStatic = () => {
+      _.forOwn(inputStatic, (key, value) => $dialogDiv.find(`#${key}`).val(value()));
+    };
+
+    const initValues = () => {
+      _.forOwn(inputValues, (key, value) => $form.find(`#${prefix}-${key}`).val(value()));
+    };
+
+
+    const loadValues = () => {
+      var result = {};
+      // Ищем все input внутри контейнера и перебираем их
+      $dialogDiv.find('input').each(function() {
+          var $input = $(this);
+          var name = $input.attr('name');
+          if (name) {
+              result[name] = $input.val();
+          }
+      });
+      return result;
+    }
 
     const dialog = $dialogDiv.dialog({
       autoOpen: false, // Диалог не открывается автоматически
@@ -368,16 +401,11 @@ const DialogFactory = {
       buttons: {
         "OK": function() {
           // Проверка валидации формы
-          if (!validation || $("#file-form").valid()) {
-            var fileName = $("#filename").val();
-            // Выполняем fetch POST запрос на /api/file с объектом { path: "<имя файла>" }
-            fetch("/api/file", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ path: fileName })
-            })
+          if (!validation || $form.valid()) {
+            const values = loadValues();
+            const fetchData = toFetchData({values, inputValues, inputStatic});
+            // Выполняем fetch запрос
+            fetch(fetchData.url, fetchData.request)
             .then(function(response) {
               if (!response.ok) {
                 throw new Error("Ошибка сети");
@@ -399,20 +427,24 @@ const DialogFactory = {
       },
       close: function() {
         // Сброс формы при закрытии диалога
-        $("#file-form")[0].reset();
-        $("#file-form").validate().resetForm();
+        $form.reset();
+        $form.validate().resetForm();
       }
     });
   
-    if(validation) {
+    if(validation && $form.length) {
       // Инициализация плагина валидации для формы
-      $("#file-form").validate(validation);
+      $form.validate(validation);
     }
 
     // Открытие диалога по нажатию на кнопку
-    const $btnOpenDialog = $(`#btn-${objPrefix}`); 
+    const $btnOpenDialog = $(`#btn-${prefix}`); 
     $btnOpenDialog.on("click", function() {
-      dialog.dialog("open");
+      if(!isAvailable || isAvailable()) {
+        initStatic();
+        initValues();
+        dialog.dialog("open");
+      }
     });
     return this;
   }
@@ -431,9 +463,23 @@ const DirectoryCreateDialog = {
           required: "Пожалуйста, введите имя папки."
         }
       }
-    }
+    };
     const dialogItem = DialogFactory.create({
       prefix: "directory",
+      toFetchData: (data) => {
+          const values = data.values || {};
+          const path = (values.path || "").trim();
+          return {
+            url: "/api/files",
+            request: {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ path })
+            }
+          }
+      },
       validation
     });
     return this;
@@ -453,9 +499,23 @@ const FileCreateDialog = {
           required: "Пожалуйста, введите имя файла."
         }
       }
-    }
+    };
     const dialogItem = DialogFactory.create({
       prefix: "file",
+      toFetchData: (data) => {
+          const values = data.values || {};
+          const path = (values.path || "").trim();
+          return {
+            url: "/api/files",
+            request: {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ pathOld: "", pathNew: path })
+            }
+          }
+      },
       validation
     });
     return this;
@@ -464,8 +524,34 @@ const FileCreateDialog = {
 
 const FileRenameDialog = {
   init: () => {
+    const validation = {
+      rules: {
+        name: {
+          required: true
+        }
+      },
+      messages: {
+        name: {
+          required: "Пожалуйста, введите новое имя."
+        }
+      }
+    };
     const dialogItem = DialogFactory.create({
-      prefix: "file-rename"
+      prefix: "file-rename",
+      toFetchData: (data) => {
+          const values = data.values || {};
+          const path = (values.path || "").trim();
+          return {
+            url: "/api/files",
+            request: {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ pathOld: "", pathNew: path })
+            }
+          }
+      },
     });
     return this;
   }
@@ -474,7 +560,15 @@ const FileRenameDialog = {
 const RemoveDialog = {
   init: () => {
     const dialogItem = DialogFactory.create({
-      prefix: "file-delete"
+      prefix: "file-delete",
+      toFetchData: (data) => {
+        return {
+          url: `/api/files?path=${encodeURIComponent(path)}`,
+          request: {
+            method: "DELETE"
+          }
+        }
+      },
     });
     return this;
   }

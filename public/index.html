@@ -17,6 +17,7 @@
   <script src="https://cdn.jsdelivr.net/jquery.validation/1.16.0/jquery.validate.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+  <script src="https://unpkg.com/mitt/dist/mitt.umd.js"></script>
 </head>
 <body>
   <!-- Заголовок приложения -->
@@ -49,7 +50,7 @@
       <div class="left-middle" id="file-tree"></div>
       <!-- Нижний блок с панелью кнопок -->
       <div class="left-bottom">
-        <div class="button-container">
+        <div class="button-container"  style="display: none;">
           <div class="block-left">
             <button id="btn-directory">Create Folder</button>
             <button id="btn-file">Create File</button>
@@ -78,29 +79,29 @@
   </div>
   <!-- Диалоговые окна -->
    <!-- Диалоговое окно с формой -->
-   <div id="directory-dialog" title="Введите имя директории" style="display: none;">
+   <div id="directory-dialog" title="Введите имя папки" style="display: none;">
     <form id="directory-dialog-form" class="form-dialog">
-      <input type="text" name="name" id="directory-dialog-name" class="input-dialog">
+      <input type="text" name="path" id="directory-dialog-name" class="input-dialog">
     </form>
   </div>
 
    <!-- Диалоговое окно с формой -->
-   <div id="file-dialog" title="Введите имя директории" style="display: none;">
+   <div id="file-dialog" title="Введите имя файла" style="display: none;">
     <form id="file-dialog-form" class="form-dialog">
-      <input type="text" name="name" id="directory-dialog-name" class="input-dialog">
+      <input type="text" name="path" id="directory-dialog-name" class="input-dialog">
     </form>
   </div>
 
    <!-- Диалоговое окно с формой -->
    <div id="file-rename-dialog" title="Введите новоеё имя файла" style="display: none;">
     <form id="file-rename-dialog-form" class="form-dialog">
-      <input type="text" name="name" id="file-rename-dialog-name"  class="input-dialog">
+      <input type="text" name="path" id="file-rename-dialog-name"  class="input-dialog">
     </form>
   </div>
 
    <!-- Диалоговое окно с формой -->
    <div id="file-delete-dialog" title="Удаление файла" style="display: none;">
-    <p>Вы действительно хотите полностью удалить файл?</p>
+    <p>Вы действительно хотите полностью удалить <span id="path" class="path-to-remove"></span>?</p>
   </div>
   <script src="script.js"></script>
 </body>

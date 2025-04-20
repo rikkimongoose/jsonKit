@@ -143,7 +143,7 @@ function loadExtData(extData, localPath) {
     // Перебор всех собственных свойств объекта
     _.forOwn(extData, (jsonCmd, key) => {
       const result = jsonpath.query(jsonData, jsonCmd);
-      resultData[key] = [...new Set(result)];
+      resultData[key] = _.uniq(result);
     });
     return resultData;
 }
