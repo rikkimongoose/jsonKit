@@ -48,7 +48,7 @@
 1. Клонируйте репозиторий:
 
 ```bash
-git clone https://github.com/ваш-репозиторий/JSONKit.git
+git clone https://github.com/rikkimongoose/jsonKit/
 cd JSONKit
 ```
 2. Установите зависимости:

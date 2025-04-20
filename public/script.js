@@ -27,14 +27,39 @@ let editor;
 let currentJsonFile = "";
 let fileTreeSocket;
 
+const Logger = {
+  Info: function (message, title, optionsOverride) {
+    console.info(message, title);
+    toastr.info(message, title, optionsOverride);
+  },
+
+  Error: function (message, title, optionsOverride) {
+    console.error(...args);
+    toastr.error(message, title, optionsOverride);
+  },
+
+  Warning: function (message, title, optionsOverride) {
+    console.warn(message, title);
+    toastr.warning(message, title, optionsOverride);
+  },
+
+  Success: function (message, title) {
+    console.info(message, title);
+    toastr.success(message, title, optionsOverride);
+  },
+
+  Debug: function (...args) {
+    console.log(args);
+  }
+};
+
 function initJSONEditor() {
   const container = document.getElementById('json-editor');
   const options = {
     mode: 'tree',
     modes: ['tree', 'code', 'form', 'text'],
     onError: (err) => {
-      console.error('JSONdata.pathEditor error:', err);
-      toastr.error(err.message, "Ошибка JSONdata.pathEditor");
+      Logger.Error(err.message, "Ошибка JSONdata.pathEditor");
     }/*,
     onChange: () => {
       // Автосохранение при изменениях (опционально)
@@ -53,17 +78,18 @@ function saveCurrentFile() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(json, null, 2)
-      })
-      .then(response => {
-            if (response.ok) {
-                console.log(`Файл ${currentJsonFile} успешно сохранён`, response)
-                return response.json()
-            }
-            throw new Error(`Ошибка: не удаётся сохранить файл ${currentJsonFile}:`); 
-        })
-      .catch(error => {
-          console.error(error);
-      });
+    })
+    .then(response => {
+        if (response.ok) {
+            Logger.Success(`Файл ${currentJsonFile} успешно сохранён`);
+            Logger.Debug(`Файл ${currentJsonFile} успешно сохранён`, response);
+            return response.json();
+        }
+        throw new Error(`Ошибка: не удаётся сохранить файл ${currentJsonFile}:`); 
+    })
+    .catch(error => {
+        Logger.Debug(error.message);
+    });
 }
 
 // Добавьте кнопку сохранения в HTML:
@@ -76,7 +102,7 @@ function showFileContent(filePath) {
             if (response.ok) {
                 return response.json();
             }
-            console.error(`Ошибка: не удаётся открыть файл ${filePath}:`, error);
+            Logger.Error(error.message, `Ошибка: не удаётся открыть файл ${filePath}:`);
         })
         .then(json => {
             if (!editor) {
@@ -87,7 +113,7 @@ function showFileContent(filePath) {
             editor.expandAll();
         })
         .catch(error => {
-            console.error(error);
+            Logger.Error(error.message);
             if (editor) editor.set({ error: error.message });
         });
 }
@@ -101,7 +127,7 @@ function updateUI(config) {
     // Добавляем индикатор разработки
     if (config.isDev) {
         document.body.classList.add('dev-mode');
-        console.log('[Frontend DEV] Режим разработки активен');
+        Logger.Info('[Frontend DEV] Режим разработки активен');
     }  
 }
 
@@ -407,6 +433,16 @@ function initRemoveDialog() {
 
 }
 
+function initSlider() {
+    // Инициализация Split.js для управления двумя колонками
+    Split(['#left', '#right'], {
+      sizes: [25, 75],     // начальное распределение ширины
+      gutterSize: 10,      // ширина разделителя в пикселях
+      minSize: 230,         // минимальная ширина каждого блока в пикселях
+      cursor: 'col-resize' // вид курсора при наведении на разделитель
+    });
+}
+
 function initDialogs() {
   initCreateDirDialog();
   initCreateFileDialog();
@@ -428,6 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
           initFileTree(config);
           initWebSocket(config);
           updateUI(config);
+          initSlider();
           initDialogs();
         })
         .catch(error => {
