@@ -149,6 +149,11 @@ class ExpressionParser {
     throw new Error("Некорректный AST узел");
   }
   
+function generateAST(filterStr) {
+  const parser = new ExpressionParser(norm(input));
+  return parser.parse();
+}
+ 
   // --- Пример использования --- //
   
   // Пример строки с разными типами литералов:
