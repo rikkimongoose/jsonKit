@@ -11,7 +11,7 @@ toastr.options = {
   "timeOut": "5000",                // Время автоматического скрытия (мс)
   "extendedTimeOut": "1000",        // Расширенное время для взаимодействия (мс)
   "showEasing": "swing",            // Анимация появления
-  "hideEasing": "linear",           // Анимация скрытия
+  "hideEasing": "linear",           // Анимация скрытияn
   "showMethod": "fadeIn",           // Метод появления
   "hideMethod": "fadeOut"           // Метод скрытия
 };
@@ -38,7 +38,7 @@ const Logger = {
   },
 
   Error: function (message, title, optionsOverride) {
-    console.error(...args);
+    console.error(message, title);
     toastr.error(message, title, optionsOverride);
   },
 

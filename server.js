@@ -78,6 +78,7 @@ if (isDev) {
 
 // Раздача статических файлов
 app.use(express.static(path.join(__dirname, config.server.staticFiles)));
+app.use('/modules', express.static(path.join(__dirname, 'node_modules')));
 
 function loadCurrentJsonDir(config) {
   return process.env.JSON_DIR || config.navigation.jsonDirectory;
