@@ -125,7 +125,7 @@ class ExpressionParser {
   function evaluate(ast, executor) {
     if (ast.hasOwnProperty('value')) {
       // Если значение не задано в контексте, считаем его false.
-      return executor(ast.value);
+      return ast.value && executor(ast.value);
     }
   
     if (ast.operator) {
@@ -150,8 +150,8 @@ class ExpressionParser {
   }
   
 function generateAST(filterStr) {
-  const parser = new ExpressionParser(norm(input));
-  return parser.parse();
+    const parser = new ExpressionParser(norm(filterStr));
+    return parser.parse();
 }
  
   // --- Пример использования --- //
