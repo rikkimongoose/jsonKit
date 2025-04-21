@@ -190,9 +190,9 @@ function initFileTree(config) {
           }
           if (filterStrLower.length > config.extDataFilterSize && node.data && !_.isEmpty(node.data.extData)) {
             // Получаем дополнительное поле extData, если оно задано
-            return _.some(node.data.extData, 
-                    (items) => 
-                       _.some(items, (item) => item.trim().toLowerCase().includes(filterStrLower))
+            return node.data.extData.some(
+                  (items) => 
+                       items.some((item) => item.trim().toLowerCase().includes(filterStrLower))
                   );          
           }
           return false;
@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     // Инициализация hot-reload в режиме разработки
-    if(_.some(['localhost', '127.0.0.1'], (host) => window.location.hostname === host)) {
+    if(['localhost', '127.0.0.1'].some((host) => window.location.hostname === host)) {
       initHotReload();
     }
 });
