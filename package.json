@@ -38,7 +38,6 @@
     "lodash": "^4.17.21",
     "mitt": "^3.0.1",
     "morgan": "^1.10.0",
-    "split": "^1.0.1",
     "toastr": "^2.1.4",
     "webpack": "^5.99.6",
     "wildcard-match": "^5.1.4",
