@@ -22,6 +22,7 @@ const ComparatorFactory = {
             
             return result;
         }
+        
         if(!operators.some(op => normFilterStr.includes(op))) {
             return {
                 matches: (str) => {
@@ -36,7 +37,7 @@ const ComparatorFactory = {
         return {
             ast,
             matches: function(str) {
-                executorFunc = (token) => {
+                const executorFunc = (token) => {
                     if(!wildcards.some(op => token.includes(op))) {
                         return norm(str).includes(token);
                     }
