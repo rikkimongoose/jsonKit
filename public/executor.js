@@ -1,18 +1,34 @@
-const cachedWildcards = {};
-
 const ComparatorFactory = {
     generateComparator: function(filterStr) {
         const normFilterStr = norm(filterStr);
         const operators = ['!', '|', '&'];
         const wildcards = ["?", "*"];
-        const toWcFilter = (source) => `*${source}*`
+        const addAsterisks = (str) => {
+            if (str === '') {
+              return str;
+            }
+            
+            let result = str;
+            
+            // Проверяем первый символ
+            if (result[0] !== '*') {
+              result = '*' + result;
+            }
+            
+            // Проверяем последний символ
+            if (result[result.length - 1] !== '*') {
+              result = result + '*';
+            }
+            
+            return result;
+        }
         if(!operators.some(op => normFilterStr.includes(op))) {
             return {
                 matches: (str) => {
                     if(!wildcards.some(op => normFilterStr.includes(op))) {
                         return norm(str).includes(normFilterStr);
                     }
-                    return wildcardsRecursive(str, toWcFilter(normFilterStr));
+                    return wildcardsRecursive(str, addAsterisks(normFilterStr));
                 }
             };
         }
@@ -24,7 +40,7 @@ const ComparatorFactory = {
                     if(!wildcards.some(op => token.includes(op))) {
                         return norm(str).includes(token);
                     }
-                    return wildcardsRecursive(str, toWcFilter(token));
+                    return wildcardsRecursive(str, addAsterisks(token));
                 }
                 return evaluate(this.ast, executorFunc);
             }
