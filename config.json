@@ -1,8 +1,7 @@
 {
     "server": {
       "port": 3000,
-      "portWss": 8080,
-      "staticFiles": "./public"
+      "portWss": 8080
     },
     "app": {
       "version": "1.0"

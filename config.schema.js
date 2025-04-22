@@ -5,7 +5,6 @@ const configSchema = Joi.object({
   server: Joi.object({
     port: Joi.number().integer().min(1).max(65535).required(),
     portWss: Joi.number().integer().min(1).max(65535).required(),
-    staticFiles: Joi.string().required(),
     cors: Joi.object({
       enabled: Joi.boolean().default(false),
       origins: Joi.array().items(Joi.string()).optional()
