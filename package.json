@@ -28,6 +28,7 @@
     "chokidar": "^4.0.3",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-actuator": "^1.8.4",
     "fs-extra": "^11.3.0",
     "joi": "^17.13.3",
     "jquery-ui": "^1.14.1",

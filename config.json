@@ -1,17 +1,16 @@
 {
     "server": {
-      "port": 3000,
-      "portWss": 8080
+      "port": 3000
     },
-    "app": {
-      "version": "1.0"
+    "wss": {
+      "port": 8080
     },
     "navigation": {
         "jsonDirectory": "./examples",
         "extDataFilterSize": 2,
         "extData": {
-          "urlPath": "$.mappings[*].request.urlPath",
-          "urlPathTemplate": "$.mappings[*].request.urlPathTemplate"
+            "urlPath": "$.mappings[*].request.urlPath",
+            "urlPathTemplate": "$.mappings[*].request.urlPathTemplate"
         }
     }
 }
