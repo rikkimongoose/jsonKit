@@ -1,10 +1,14 @@
 class ConfigRouter {
-    constructor(config, appConst) {
+    constructor(config, appConstants, emitter) {
         this.router = require('express').Router();
         this.url = "/config";
         this.configSource = config;
-        this.appConst = appConst;
+        this.AppConstants = appConstants;
+        this.emitter = emitter;
         this.setupRoutes();
+        this.emitter.on('config:update', (e) => {
+            this.configSource = e;
+        });
     }
 
     get pathUrl() {
@@ -20,12 +24,12 @@ class ConfigRouter {
     }
 
     get config() {
-        return this.configSource();
+        return this.configSource;
     }
     
     getData(req, res) {
         res.json({
-            version: this.appConst.app.version,
+            version: this.AppConstants.app.version,
             jsonDirectory: this.config.navigation.jsonDirectoryFull,
             server: this.config.server,
             wss: this.config.wss,

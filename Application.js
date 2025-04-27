@@ -1,34 +1,16 @@
 class Application {
-    constructor(config) {
+    constructor(config, httpServer, fileWatcherManager, webSocketServer) {
       this.config = config;
-      this.httpServer = new HttpServer(this.config.http);
-      this.fileWatcherManager = new FileWatcherManager();
-      this.webSocketServer = new WebSocketServer(this.config.ws, this.fileWatcherManager);
-      this.isDev = this.config.env === 'development';
-      
-      this.setupDependencies();
+      this.httpServer = httpServer;
+      this.fileWatcherManager = fileWatcherManager;
+      this.webSocketServer = webSocketServer;
+      this.isDev = config.isDev;
     }
     
-    setupDependencies() {
-      // Регистрируем обработчики событий
-      this.fileWatcherManager.subscribe('file:user:change', (data) => {
-        console.log('User file changed:', data.path);
-        // Можно добавить дополнительную логику обработки
-      });
-      
-      if (this.isDev) {
-        this.devWatcher = this.fileWatcherManager.createDevWatcher();
-      }
-      
-      this.userWatcher = this.fileWatcherManager.createUserWatcher(
-            this.config.watchFolder
-      );
-    }
-  
     start() {
-        this.httpServer.start();
-        this.webSocketServer.start(this.httpServer.server);
-        this.fileWatcherManager.startAll();
+        this.httpServer.start(this.config.server);
+        this.webSocketServer.start(this.config.wss);
+        this.fileWatcherManager.createWatchers();
     }
   
     stop() {

@@ -2,101 +2,121 @@ const chokidar = require('chokidar');
 const path = require('path');
 
 class FileWatcherManager {
-    constructor(config, fileHelper) {
-        this.jsonDir = path.resolve(config.navigation.jsonDirectory);
+    constructor(config, emitter, fileHelper) {
+        this.jsonDirectory = config.jsonDirectory;
+        this.ext = config.ext;
+        this.configSource = config.configSource;
+        this.extData = config.extData;
         this.fileHelper = fileHelper;
+        this.emitter = emitter;
         this.watchers = {};
-        this.observers = [];
     }
 
-    subscribe(observer) {
-        this.observers.push(observer);
+    createWatchers() {
+        this.watchers.config = this.createConfigWatcher();
+        this.watchers.files = this.createFilesWatcher();
     }
 
-    unsubscribe(observer) {
-        this.observers = this.observers.filter(obs => obs !== observer);
-    }
+    createConfigWatcher() {
+        // Отслеживание изменений конфига
+        const configWatcher = chokidar.watch(this.configSource, {
+            ignoreInitial: true,
+            awaitWriteFinish: {
+                stabilityThreshold: 500,
+                pollInterval: 100
+            }
+        });
+        configWatcher.on('change', () => {
+            console.log('\n[DEV] Обнаружено изменение конфига');
+            const oldPort = config.server.port;
+            const oldLocation = config.server.location;
+            config = loadConfig();
+          
+            if (oldPort !== config.server.port) {
+                console.log('[DEV] Порт изменился. Требуется перезапуск сервера.');
+            } else if (oldLocation !== config.server.location) {
+                console.log('[DEV] Расположение изменилось. Требуется перезапуск сервера.');
+            }
+            this.emitter.emit('config:changed', config);
+          })
+          .on('ready', () => {
+              console.log(`Предварительное сканирование завершено. Отслеживаются изменения в: ${this.configSource}`);
+          });
+        return configWatcher;
+    } 
 
-    notifyAll(eventType, data) {
-        this.observers.forEach(observer => observer.broadcast(eventType, data));
-    }
-
-    createDevWatcher() {
-        const watcher = chokidar.watch(this.jsonDir, {
+    createFilesWatcher() {
+        const watcher = chokidar.watch(this.jsonDirectory, {
             ignored: /(^|[\/\\])\../,
             persistent: true
         });
 
-        this.setupWatcherEvents(watcher);
-        this.watchers.json = watcher;
+        this.setupFilesWatcherEvents(watcher);
         return watcher;
     }
 
-    setupWatcherEvents(watcher, type) {
-        const checkFile = filePath => filePath.endsWith('.json');
-        const readExtData = filePath => this.fileHelper.loadExtData(config.navigation.extData, filePath);
+    setupFilesWatcherEvents(watcher) {
+        const notify = (type, data) => 
+            this.emitter.emit('files:change', {type, ...data });
+
+        const checkFile = filePath => filePath.endsWith(this.ext);
+        const readExtData = filePath => this.fileHelper.loadExtData(this.extData, filePath);
         watcher
             .on('add', filePath => {
                 if (!checkFile(filePath)) {
                     return;
                 }
-                this.notifyAll(`file:add`, {
+                notify(`add`, {
                     path: path.resolve(filePath),
                     basename: path.basename(filePath),
                     isDirectory: false,
-                    extData: readExtData(filePath),
-                    time: new Date().toISOString()
+                    extData: readExtData(filePath)
                 });
             })
             .on('addDir', dirPath => {
-                this.notifyAll(`file:addDir`, {
+                notify(`addDir`, {
                     path: path.resolve(dirPath),
-                    isDirectory: true,
-                    time: new Date().toISOString()
+                    isDirectory: true
                 });
             })
             .on('change', filePath => {
                 if (!checkFile(filePath)) {
                     return;
                 }
-                this.notifyAll(`file:change`, {
+                notify(`change`, {
                     path: path.resolve(filePath),
                     extData: readExtData(filePath),
-                    isDirectory: false,
-                    time: new Date().toISOString()
+                    isDirectory: false
                 });
             })
             .on('unlink', filePath => {
                 if (!checkFile(filePath)) {
                     return;
                 }
-                this.notifyAll(`file:unlink`, {
+                notify(`unlink`, {
                     path: path.resolve(filePath),
-                    isDirectory: !path.extname(filePath),
-                    time: new Date().toISOString()
+                    isDirectory: !path.extname(filePath)
                 });
             })
             .on('unlinkDir', dirPath => {
-                this.notifyAll(`file:unlinkDir`, {
+                notify(`unlinkDir`, {
                     path: path.resolve(dirPath),
-                    isDirectory: true,
-                    time: new Date().toISOString()
+                    isDirectory: true
                 });
             })
             .on('error', error => {
                 console.error('Watcher error:', error);
             })
             .on('ready', () => {
-                console.log(`Initial scan complete. Ready for changes in ${config.navigation.jsonDirectory}`);
+                console.log(`Предварительное сканирование завершено. Отслеживаются изменения в: ${this.jsonDirectory}`);
             });
     }
 
-    startAll() {
-        Object.values(this.watchers).forEach(watcher => watcher && watcher.add);
-    }
-
     stopAll() {
-        Object.values(this.watchers).forEach(watcher => watcher && watcher.close());
+        Object.entries(this.watchers).forEach(([title, watcher]) => watcher.close()
+            .then(() => console.log(`Watcher ${title} остановлен`))
+            .catch(err => console.error(`Ошибка при остановке ${title}:`, err))
+        );
     }
 }
 

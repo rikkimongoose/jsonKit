@@ -1,29 +1,29 @@
 const WebSocket = require('ws');
 
 class WebSocketServer {
-    constructor(fileWatcherManager) {
+    constructor(emitter) {
         this.wss = null;
         this.clients = new Set();
-        this.fileWatcherManager = fileWatcherManager;
-        
-        this.setupEventListeners();
+        this.emitter = emitter;
+
+        emitter.on('config:update', (e) => {
+            this.stop();
+            this.start(e.wss);
+        });
+        emitter.on('files:change', (e) => {
+            this.handleFileEvent(e);
+        });
     }
   
-    setupEventListeners() {
-        // Подписываемся на все файловые события
-        this.fileWatcherManager.subscribe(this.handleFileEvent.bind(this));
-    }
-  
-    handleFileEvent(type, data) {
+    handleFileEvent(data) {
         this.broadcast({
-            type: type,
             timestamp: Date.now(),
             ...data
         });
     }
   
-    start(server) {
-        this.wss = new WebSocket.Server({ server });
+    start(config) {
+        this.wss = new WebSocket.Server(config);
 
         this.wss.on('connection', (ws) => {
             this.clients.add(ws);

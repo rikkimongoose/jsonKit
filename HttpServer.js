@@ -1,38 +1,44 @@
 const express = require('express');
+const actuator = require('express-actuator');
 const path = require('path');
 
 class HttpServer {
-    constructor(config) {
-        this.port = config.port;
-        this.app = express();
-        this.server = null;
+    constructor(config, frontendConfig, emitter) {
         this.routers = [];
         this.isDev = config.isDev;
-        this.frontendDir = config.frontendDir;
-        this.modulesDir = config.modulesDir;
-        
+        this.frontendDir = frontendConfig.frontendDir;
+        this.modulesDir = frontendConfig.modulesDir;
+
+        this.emitter = emitter;
+        emitter.on('config:update', (e) => {
+            this.stop();
+            this.start(e.server);
+        });
+        this.server = null;
         this.setupMiddleware();
     }
 
     setupMiddleware() {
-        const actuator = require('express-actuator');
-        this.app.use(this.express.static(path.join(__dirname, this.frontendDir)));
-        this.app.use(this.modulesDir, this.express.static(path.join(__dirname, 'node_modules')));
-        this.app.use(actuator());
+        this.express = express();
+        this.express.use(express.static(path.join(__dirname, (this.frontendDir))));
+        this.express.use(this.modulesDir, express.static(path.join(__dirname, 'node_modules')));
+        this.express.use(actuator());
         if (this.isDev) {
             const morgan = require('morgan');
-            this.app.use(morgan('dev')); 
+            this.express.use(morgan('dev')); 
         }
     }
 
     registerRouter(router) {
         this.routers.push(router);
-        this.app.use(router.pathUrl, router.router);
+        this.express.use(router.pathUrl, router.router);
     }
 
-    start() {
-        this.server = app.listen(this.port, () => {
-            console.log(`Сервер запущен на http://localhost:${config.server.port}`);
+    start(config) {
+        const port = config.port || 8080;
+        const host = config.host || "localhost";
+        this.server = this.express.listen(port, host, () => {
+            console.log(`Сервер запущен на http://${host}:${port}`);
             if (this.isDev) {
                 console.log('[DEV] Режим разработки активен');
                 console.log('[DEV] Отслеживаются изменения в:');

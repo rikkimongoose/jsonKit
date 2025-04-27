@@ -1,20 +1,16 @@
-import { object, number, boolean, array, string } from 'joi';
+const Joi = require('joi');
 
 // Схема для валидации config.json
-const configSchema = object({
-  server: object({
-    port: number().integer().min(1).max(65535).required(),
-    portWss: number().integer().min(1).max(65535).required(),
-    cors: object({
-      enabled: boolean().default(false),
-      origins: array().items(string()).optional()
-    }).optional()
+const configSchema = Joi.object({
+  server: Joi.object({
+    port: Joi.number().integer().min(1).max(65535).required(),
+    location: Joi.string().default('localhost')
   }).required(),
-  wss: object({
-    port: number().integer().min(1).max(65535).required()
+  wss: Joi.object({
+    port: Joi.number().integer().min(1).max(65535).required()
   }).required(),
-  navigation: object({
-    jsonDirectory: string()
+  navigation: Joi.object({
+    jsonDirectory: Joi.string()
       .default('.')
       .custom((value, helpers) => {
         if (value.includes('..')) {
@@ -22,9 +18,9 @@ const configSchema = object({
         }
         return value;
       }, 'path validation'),
-      extDataFilterSize:  number().integer().min(1).max(65535).default(2).required(),
-    extData: object().default(null)
+      extDataFilterSize:  Joi.number().integer().min(1).max(65535).default(2).required(),
+    extData: Joi.object().default(null)
   }).default()
 });
 
-export default configSchema;
+module.exports = configSchema;

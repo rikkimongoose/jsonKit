@@ -1,12 +1,13 @@
 const path = require('path');
 const chokidar = require('chokidar');
 
-class LiveReloadHeader {
-    constructor(config, httpHelper) {
+class LiveReloadRouter {
+    constructor(config, emitter, httpHelper) {
         this.router = require('express').Router();
+        this.emitter = emitter;
         this.url = "/sse";
         this.httpHelper = httpHelper;
-        this.frontend = config.frontend;
+        this.frontendDir = config.frontendDir;
         this.isDev = config.isDev;
         this.setupRoutes();
     }
@@ -24,7 +25,7 @@ class LiveReloadHeader {
     getSse(req, res) {
         this.httpHelper.makeLiveReload(res);
         
-        const watcher = this.chokidar.watch(this.frontend, {
+        const watcher = chokidar.watch(this.frontendDir, {
             ignored: /(^|[\/\\])\../, // игнорировать скрытые файлы
             persistent: true
         });
@@ -40,4 +41,4 @@ class LiveReloadHeader {
     }
 }
 
-module.exports = LiveReloadHeader;
+module.exports = LiveReloadRouter;

@@ -1,23 +1,24 @@
 const path = require('path');
 const PathValidator = require("./PathValidator");
+const express = require('express');
 
 class ApiRouter {
-    constructor(config, fileHelper) {
-        this.router = require('express').Router();
+    constructor(config, emitter, fileHelper) {
+        this.emitter = emitter;
+        this.router = express.Router();
         this.jsonDirectory = config.jsonDirectory;
-        this.ext = config.ext;
+        this.ext = '.' + (config.ext || 'json');
         this.url = "/api";
         this.fileHelper = fileHelper;
+
+        emitter.on('config:update', (e) => {
+            this.jsonDirectory = e.ApiRouternavigation.jsonDirectory;
+        });
         this.setupRoutes();
     }
 
     get pathUrl() {
         return this.url;
-    }
-
-    update(config) {
-        this.config = config;
-        this.jsonDir = config.navigation.jsonDir;
     }
 
     setupRoutes() {
@@ -31,14 +32,14 @@ class ApiRouter {
 
     generateValidatorConfig() {
         return {
-            jsonDirectory: config.jsonDirectory,
-            ext: config.ext
+            jsonDirectory: this.jsonDirectory,
+            ext: this.ext
         };
     }
 
     getFile(req, res) {
         try {
-            const validator = new this.PathValidator(res, generateValidatorConfig(), [req.query.path])
+            const validator = new this.PathValidator(res, this.generateValidatorConfig(), [req.query.path])
                 .isAllowed()
                 .then(absolutePath => res.json(this.fileHelper.loadDir(absolutePath)) );
         } catch (error) {
@@ -51,7 +52,7 @@ class ApiRouter {
     }
 
     getDirectory(req, res) {
-        const validator = new this.PathValidator(res, generateValidatorConfig(), [req.query.path])
+        const validator = new this.PathValidator(res, this.generateValidatorConfig(), [req.query.path])
             .isAllowed()
             .isJson()
             .then(absolutePath => {
@@ -77,7 +78,7 @@ class ApiRouter {
     }
     
     createFile(req, res) {
-        const validator = new PathValidator(res, generateValidatorConfig(), [req.query.path])
+        const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
             .isAllowed()
             .isJson()
             .then(absolutePath => {
@@ -101,7 +102,7 @@ class ApiRouter {
     }
     
     createDirectory(req, res) {
-        const validator = new PathValidator(res, generateValidatorConfig(), req.query.path)
+        const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
             .isAllowed()
             .then(absolutePath => {
                 const absoluteDirPath = path.dirname(filePath);
@@ -119,7 +120,7 @@ class ApiRouter {
     
     renameFile(req, res) {
         const { pathOld, pathNew } = req.body;
-        const isPathOldValid = new PathValidator(res, generateValidatorConfig(), [pathOld])
+        const isPathOldValid = new PathValidator(res, this.generateValidatorConfig(), [pathOld])
                 .isJson()
                 .isValid();
         if(!isPathOldValid) {
@@ -147,7 +148,7 @@ class ApiRouter {
     }
 
     deleteFile(req, res) {
-        const validator = new PathValidator(res, generateValidatorConfig(), [req.query.path])
+        const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
             .isAllowed()
             .then(absolutePath => {
                 fs.stat(absolutePath, (err, stats) => {

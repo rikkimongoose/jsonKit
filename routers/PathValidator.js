@@ -1,4 +1,3 @@
-import { isEmpty } from 'lodash';
 const path = require('path');
 
 class PathValidator {
@@ -7,7 +6,7 @@ class PathValidator {
         this.ext = '.' + (config.ext || 'json');
         this.jsonDirectory = path.resolve(config.jsonDirectory);
         this.valid = true; // Флаг валидности
-        if (absolutePaths.some(absolutePath => isEmpty(absolutePath))) {
+        if (absolutePaths.some(absolutePath => (!absolutePath && absolutePath.length == 0))) {
             const msg = "Путь не может быть пустым";
             console.error(msg);
             res.status(400).json({ error: msg });

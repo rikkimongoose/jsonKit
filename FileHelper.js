@@ -1,6 +1,6 @@
-import { forOwn, uniq } from 'lodash';
 const path = require('path');
 const jsonpath = require('jsonpath');
+const fs = require('fs-extra');
 
 const ResultType = {
     FILE: 'file',
@@ -8,6 +8,10 @@ const ResultType = {
 };
 
 class FileHelper {
+    constructor(config) {
+        this.ext = '.' + (config.ext || 'json');
+    }
+
     loadDir(absolutePath) {
         const items = fs.readDirSync(absolutePath, { withFileTypes: true });
         const resultDir = [];
@@ -26,7 +30,7 @@ class FileHelper {
                     children: subDir,
                     extData: {}
                 });
-            } else if (item.name.endsWith('.json')) {
+            } else if (item.name.endsWith(this.ext)) {
                 const extData = this.loadExtData(config.navigation.extData, localPath);
                 // Добавляем только JSON-файлы
                 resultFiles.push({
@@ -61,9 +65,9 @@ class FileHelper {
     
         const resultData = {};
         // Перебор всех собственных свойств объекта
-        forOwn(extData, (jsonCmd, key) => {
+        Object.entries(extData).forEach(([jsonCmd, key]) => {
             const result = jsonpath.query(jsonData, jsonCmd);
-            resultData[key] = uniq(result);
+            resultData[key] = [...new Set(result)];
         });
         return resultData;
     }

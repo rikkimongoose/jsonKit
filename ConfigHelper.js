@@ -1,22 +1,26 @@
-import { readFileSync } from 'fs-extra';
+const fs = require('fs-extra');
 const path = require('path');
 
 class ConfigHelper {
-    constructor(config) {
+    constructor(config, emitter) {
         this.source = config.source;
         this.validator = config.validator;
         this.configData = null;
 
         this.reloadConfig();
+        this.emitter = emitter;
+        this.emitter.on('config:changed', (e) => {
+            this.emitter.emit('config:update', this.reloadConfig())
+        });
     }
 
     reloadConfig() {
-        require('dotenv').config()
+        require('dotenv').config();
         // Определение режима разработки
         this.isDev = process.env.NODE_ENV === 'development';
 
-        this.rawConfig = readFileSync(this.source, 'utf-8');
-        this.parsedConfig = JSON.parse(rawConfig);
+        this.rawConfig = fs.readFileSync(this.source, 'utf-8');
+        this.parsedConfig = JSON.parse(this.rawConfig);
         this.configSchema = require(this.validator);
         if (this.isDev) {
             console.log('[DEV] Конфиг загружен.');
@@ -28,7 +32,7 @@ class ConfigHelper {
                 error.details.forEach(err => console.error(`- ${err.message}`));
                 process.exit(1);
             }
-            this.configData = updateConfig({isDev, ...value});
+            this.configData = this.updateConfig(value);
         } catch (err) {
             console.error('Ошибка чтения config.json:', err.message);
             process.exit(1);
@@ -38,6 +42,7 @@ class ConfigHelper {
 
     updateConfig(config) {
         const configOriginal = {...config};
+        configOriginal.isDev = this.isDev;
         configOriginal.navigation.jsonDirectoryFull = path.resolve(configOriginal.navigation.jsonDirectory);
         return configOriginal;
     }
@@ -47,4 +52,4 @@ class ConfigHelper {
     }
 }
 
-export default ConfigHelper;
+module.exports = ConfigHelper;

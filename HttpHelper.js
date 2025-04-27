@@ -1,5 +1,3 @@
-import { forOwn } from 'lodash';
-
 const liveReloadHeader = {
     'Content-Type':'text/event-stream',
     'Cache-Control':"no-cache, no-store, must-revalidate",
@@ -8,6 +6,8 @@ const liveReloadHeader = {
 
 class HttpHelper {
     makeLiveReload(res) {
-        forOwn(liveReloadHeader, (value, header) => res.setHeader(header, value));
+        Object.entries(liveReloadHeader).forEach(([header, value]) => res.setHeader(header, value));
     }
 }
+
+module.exports = HttpHelper;
