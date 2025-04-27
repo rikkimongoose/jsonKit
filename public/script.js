@@ -206,8 +206,8 @@ const FileTreeSocket = {
             setTimeout(function() { FileTreeSocket.initSocket(FileTreeSocket.wsUrl) }, 1000);
         };
     },
-    handleEvent: function(event) {
-      const data = JSON.parse(event.data);
+    handleEvent: function(evt) {
+      const data = JSON.parse(evt.data);
       Logger.Debug('FS event:', data);
       
       const tree = FileTreeControl.fancytree;
