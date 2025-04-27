@@ -1,5 +1,3 @@
-let fileTreeSocket;
-
 const appState = {
   currentJsonFile: "",
   currentSelectedPath: ""
@@ -203,10 +201,10 @@ const FileTreeSocket = {
     initSocket: function(wsUrl) {
         this.socket = new WebSocket(wsUrl);
         this.socket.onmessage = this.handleEvent.bind(this);
-        /*this.socket.onclose = function() {
+        this.socket.onclose = function() {
             Logger.Warning('WebSocket disconnected, reconnecting...');
             setTimeout(function() { FileTreeSocket.initSocket(FileTreeSocket.wsUrl) }, 1000);
-        };*/
+        };
     },
     handleEvent: function(event) {
       const data = JSON.parse(event.data);
@@ -315,14 +313,7 @@ const FileTreeSocket = {
         case 'unlinkDir':
             nodesHelper.remove(data.path);
             break;
-        case 'change':
-
-        const sortMethod = (a, b) => {
-          const x = (a.isFolder() ? "0" : "1") + a.title.toLowerCase(),
-                y = (b.isFolder() ? "0" : "1") + b.title.toLowerCase();
-          return x === y ? 0 : x > y ? 1 : -1;
-        };
-        
+        case 'change':        
             // Обновляем файл (если он открыт в редакторе)
             if (appState.currentJsonFile === data.path) {
                 JsonEditorControl.showFileContent(data.path);
