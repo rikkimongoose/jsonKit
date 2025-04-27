@@ -65,7 +65,7 @@ class FileHelper {
     
         const resultData = {};
         // Перебор всех собственных свойств объекта
-        Object.entries(extData).forEach(([jsonCmd, key]) => {
+        Object.entries(extData).forEach(([key, jsonCmd]) => {
             const result = jsonpath.query(jsonData, jsonCmd);
             resultData[key] = [...new Set(result)];
         });

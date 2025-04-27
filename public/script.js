@@ -2,6 +2,7 @@ let fileTreeSocket;
 
 const appState = {
   currentJsonFile: "",
+  currentSelectedItem: "",
   $treeNode: null
 };
 
@@ -104,77 +105,88 @@ const UIControl = {
     }
 }
 
-function initFileTree(config) {
-    const filepath = config.jsonDirectory;
-    const dataSourceRequest = `/api/files?path=${encodeURIComponent(filepath)}`
-    $("#file-tree").fancytree({
-      extensions: ["filter"],
-      checkbox: false,
-      selectMode: 1,
-      source: {
-        type: "GET",
-        url: dataSourceRequest,
-        dataType: "json",
-        cache: false
-      },
-      lazyLoad: (event, data) => {
-        data.result = new Promise((resolve) => {
-          fetch(`/api/files?path=${encodeURIComponent(data.node.data.key)}`)
-            .then(response => response.json())
-            .then(items => resolve(items));
+const sortMethod = (a, b) => {
+  const x = (a.isFolder() ? "0" : "1") + a.title.toLowerCase(),
+        y = (b.isFolder() ? "0" : "1") + b.title.toLowerCase();
+  return x === y ? 0 : x > y ? 1 : -1;
+};
+
+const FileTreeControl = {
+    fileTreeControl: null,
+    refreshTreeControl: null,
+    fancytreeControl: null,
+    fancytree: null,
+    treeFilter: null,
+    init: function(config) {
+        const filepath = config.jsonDirectory;
+        const dataSourceRequest = `/api/files?path=${encodeURIComponent(filepath)}`;
+        this.fileTreeControl = $("#file-tree");
+        this.fancytreeControl = this.fileTreeControl.fancytree({
+            extensions: ["filter"],
+            checkbox: false,
+            selectMode: 1,
+            source: {
+                type: "GET",
+                url: dataSourceRequest,
+                dataType: "json",
+                cache: false
+            },
+            lazyLoad: (event, data) => {
+                data.result = new Promise((resolve) => {
+                    fetch(`/api/files?path=${encodeURIComponent(data.node.data.key)}`)
+                        .then(response => response.json())
+                        .then(items => resolve(items));
+                });
+            },
+            activate: (event, data) => {
+                const node = data.node;
+                if (!node.data) return;        
+                if (node.type === 'file') {
+                    appState.currentJsonFile = node.key;
+                    JsonEditorControl.showFileContent(appState.currentJsonFile);
+                }
+                appState.currentSelectedItem = node.key;
+            },
+            sort: sortMethod,
         });
-      },
-      activate: (event, data) => {
-        const node = data.node;
-        if (!node.data) return;        
-        if (node.type === 'file') {
-            appState.currentJsonFile = node.key;
-            JsonEditorControl.showFileContent(appState.currentJsonFile);
-        }
-      },
-      sort: function(a, b) {
-        if (a.data.isFolder && !b.data.isFolder) return -1;
-        if (!a.data.isFolder && b.data.isFolder) return 1;
-        return a.title.localeCompare(b.title);
-      }
-    });
-  
-    // Фильтрация дерева
-    $("#tree-filter").on("keyup", function(e) {
-      const filterStr = $(this).val();
-      if (e && e.which === $.ui.keyCode.ESCAPE || filterStr.trim() === "") {
-          $(this).val("");
-          $("#file-tree").fancytree("getTree").clearFilter();
-          return;
-      }
-
-      const filter = (node) => {
-          // Приводим к нижнему регистру для нечувствительности к регистру
-          var title = node.title ? node.title.trim().toLowerCase() : "";
-          var filterStrLower = filterStr.trim().toLowerCase();
-          const comparatorFilter = ComparatorFactory.generateComparator(filterStrLower);
-
-          if (comparatorFilter.matches(title)) {
-            return true;
+        this.fancytree = $.ui.fancytree.getTree(this.fancytreeControl);
+        // Фильтрация дерева
+        this.treeFilter = $("#tree-filter");
+        this.treeFilter.on("keyup", function(e) {
+          const filterStr = $(this).val();
+          if (e && e.which === $.ui.keyCode.ESCAPE || filterStr.trim() === "") {
+              $(this).val("");
+              FileTreeControl.fancytree.clearFilter();
+              return;
           }
-          if (filterStrLower.length > config.extDataFilterSize && node.data && node.data.extData) {
-            // Получаем дополнительное поле extData, если оно задано
-            return Object.values(node.data.extData).some((items) => items.some((item) => comparatorFilter.matches(item)));          
-          }
-          return false;
-      };
+          const filter = (node) => {
+              // Приводим к нижнему регистру для нечувствительности к регистру
+              var title = node.title ? node.title.trim().toLowerCase() : "";
+              var filterStrLower = filterStr.trim().toLowerCase();
+              const comparatorFilter = ComparatorFactory.generateComparator(filterStrLower);
+
+              if (comparatorFilter.matches(title)) {
+                return true;
+              }
+              if (filterStrLower.length > config.extDataFilterSize && node.data && node.data.extData) {
+                  // Получаем дополнительное поле extData, если оно задано
+                  return Object.values(node.data.extData).some((items) => items.some((item) => comparatorFilter.matches(item)));          
+              }
+              return false;
+          };
+          
+          FileTreeControl.fancytree.filterNodes(filter, {
+              autoExpand: true
+          });
+        });
       
-      $("#file-tree").fancytree("getTree").filterNodes(filter, {
-        autoExpand: true
-      });
-    });
-  
-    // Кнопка обновления
-    $("#refresh-tree").on("click", () => {
-      const tree = $("#file-tree").fancytree("getTree");
-      tree.reload();
-    });
-  }
+        // Кнопка обновления
+        this.refreshTreeControl = $("#refresh-tree")
+        this.refreshTreeControl.on("click", () => {
+            FileTreeControl.fancytree.reload();
+        });
+    }
+};
 
 const FileTreeSocket = {
     socket: null,
@@ -192,16 +204,16 @@ const FileTreeSocket = {
     initSocket: function(wsUrl) {
         this.socket = new WebSocket(wsUrl);
         this.socket.onmessage = this.handleEvent.bind(this);
-        this.socket.onclose = function() {
+        /*this.socket.onclose = function() {
             Logger.Warning('WebSocket disconnected, reconnecting...');
-            setTimeout(function() { this.initSocket(this.wsUrl) }, 1000);
-        };
+            setTimeout(function() { FileTreeSocket.initSocket(FileTreeSocket.wsUrl) }, 1000);
+        };*/
     },
     handleEvent: function(event) {
       const data = JSON.parse(event.data);
       Logger.Debug('FS event:', data);
       
-      const tree = $("#file-tree").fancytree("getTree");
+      const tree = FileTreeControl.fancytree;
       if (!tree) return;
     
       const pathHelper = {
@@ -286,41 +298,43 @@ const FileTreeSocket = {
             } : {
               title: data.basename,
               key: data.path,
-              type: 'file'
+              type: 'file',
+              extData: data.extData
             }
           },
       };
       switch(data.type) {
         case 'add':
-          // Добавляем новый узел
-          nodesHelper.addFile(data.path, data.extData);
-          break;
+            // Добавляем новый узел
+            nodesHelper.addFile(data.path, data.extData);
+            break;
         case 'addDir':
-          // Добавляем новый узел
-          nodesHelper.addDir(data.path);
-          break;
+            // Добавляем новый узел
+            nodesHelper.addDir(data.path);
+            break;
         case 'unlink':
         case 'unlinkDir':
-          nodesHelper.remove(data.path);
-          break;
+            nodesHelper.remove(data.path);
+            break;
         case 'change':
-          // Обновляем файл (если он открыт в редакторе)
-          if (appState.currentJsonFile === data.path) {
-              JsonEditorControl.showFileContent(data.path);
-          }
-          const nodeToUpdate = tree.getNodeByKey(data.path);
-          if (nodeToUpdate) {
-            nodeToUpdate.data.extData = data.extData;
-          }
-          break;
+
+        const sortMethod = (a, b) => {
+          const x = (a.isFolder() ? "0" : "1") + a.title.toLowerCase(),
+                y = (b.isFolder() ? "0" : "1") + b.title.toLowerCase();
+          return x === y ? 0 : x > y ? 1 : -1;
+        };
+        
+            // Обновляем файл (если он открыт в редакторе)
+            if (appState.currentJsonFile === data.path) {
+                JsonEditorControl.showFileContent(data.path);
+            }
+            const nodeToUpdate = tree.getNodeByKey(data.path);
+            if (nodeToUpdate) {
+              nodeToUpdate.data.extData = data.extData;
+            }
+            break;
       }
     },
-};
-
-const sortMethod = (a, b) => {
-  const x = (a.isFolder() ? "0" : "1") + a.title.toLowerCase(),
-        y = (b.isFolder() ? "0" : "1") + b.title.toLowerCase();
-  return x === y ? 0 : x > y ? 1 : -1;
 };
 
 // Инициализация SSE соединения для hot-reload
@@ -584,12 +598,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(config => {
-            initFileTree(config);
-            [UIControl, FileTreeSocket, DialogControl, SliderControl].forEach(control => control.init(config));
+            [UIControl, FileTreeControl, FileTreeSocket, DialogControl, SliderControl].forEach(control => control.init(config));
         })
         .catch(error => {
             Logger.Error(error.message, 'Ошибка загрузки конфигурации');
-            currentPathElement.textContent = 'Ошибка загрузки конфигурации';
+            UIControl.currentPathElement.textContent = 'Ошибка загрузки конфигурации';
         });
 
     // Инициализация hot-reload в режиме разработки
