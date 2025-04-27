@@ -369,12 +369,12 @@ const DialogFactory = {
 
     const $form = $(`#${prefix}-dialog-form`);
 
-    const initStatic = () => {
-        Object.entries(inputStatic).forEach(([key, value]) => $dialogDiv.find(`#${key}`).val(value()));
-    };
-
     const initValues = () => {
-        Object.entries(inputValues).forEach(([key, value]) => $form.find(`#${prefix}-${key}`).val(value()));
+        Object.entries(inputValues).forEach(([key, value]) => {
+            const val = value();
+            $form.find(`#${prefix}-${key}`).val(val);
+            $dialogDiv.find(`#${prefix}-${key}-static`).val(val);
+        });
     };
 
     const loadValues = () => {
