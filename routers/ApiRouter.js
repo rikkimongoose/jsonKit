@@ -66,7 +66,7 @@ class ApiRouter {
                     try {
                         JSON.parse(content);
                     } catch (error) {
-                        const parseErr = { 
+                        const jsonErr = { 
                             error: error instanceof SyntaxError ? `Невалидный JSON: ${content}` : errorMessageText,
                             details: error.message 
                         }

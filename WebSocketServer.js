@@ -17,7 +17,7 @@ class WebSocketServer {
   
     handleFileEvent(data) {
         this.broadcast({
-            timestamp: Date.now(),
+            timestamp: new Date().toISOString(),
             ...data
         });
     }
@@ -42,7 +42,7 @@ class WebSocketServer {
     }
   
     broadcast(data) {
-        const message = JSON.stringify({data});
+        const message = JSON.stringify(data);
         this.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(message);

@@ -179,7 +179,7 @@ function initFileTree(config) {
     }
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//localhost:${config.wss.port}`;
+    const wsUrl = `${wsProtocol}//${config.server.location}:${config.wss.port}`;
     
     const fileTreeSocket = new WebSocket(wsUrl);
     const dataDir = config.jsonDirectoryFull;

@@ -31,6 +31,7 @@ class ConfigRouter {
         res.json({
             version: this.AppConstants.app.version,
             jsonDirectory: this.config.navigation.jsonDirectory,
+            jsonDirectoryFull: this.config.navigation.jsonDirectoryFull,
             server: this.config.server,
             wss: this.config.wss,
             extData: this.config.navigation.extData,
