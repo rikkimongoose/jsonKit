@@ -2,8 +2,7 @@ let fileTreeSocket;
 
 const appState = {
   currentJsonFile: "",
-  currentSelectedItem: "",
-  $treeNode: null
+  currentSelectedPath: ""
 };
 
 const JsonEditorControl = {
@@ -145,7 +144,7 @@ const FileTreeControl = {
                     appState.currentJsonFile = node.key;
                     JsonEditorControl.showFileContent(appState.currentJsonFile);
                 }
-                appState.currentSelectedItem = node.key;
+                appState.currentSelectedPath = node.key;
             },
             sort: sortMethod,
         });
@@ -360,7 +359,6 @@ const DialogFactory = {
   create: (options) => {
     const prefix = options.prefix || "file";
     const validation = options.validation || null;
-    const inputStatic = options.inputStatic || {};
     const inputValues = options.inputValues || {};
     const toFetchData = options.toFetchData;
     const isAvailable = options.isAvailable || null;
@@ -436,7 +434,6 @@ const DialogFactory = {
     const $btnOpenDialog = $(`#btn-${prefix}`); 
     $btnOpenDialog.on("click", function() {
       if(!isAvailable || isAvailable()) {
-        initStatic();
         initValues();
         dialog.dialog("open");
       }
@@ -507,7 +504,7 @@ const FileCreateDialog = {
               headers: {
                 "Content-Type": "application/json"
               },
-              body: JSON.stringify({ pathOld: "", pathNew: path })
+              body: JSON.stringify({ path })
             }
           }
       },
@@ -533,6 +530,7 @@ const FileRenameDialog = {
     };
     const dialogItem = DialogFactory.create({
       prefix: "file-rename",
+      inputValues: { path: appState.currentSelectedPath },
       toFetchData: (data) => {
           const values = data.values || {};
           const path = (values.path || "").trim();
@@ -547,6 +545,7 @@ const FileRenameDialog = {
             }
           }
       },
+      validation
     });
     return this;
   }
@@ -556,14 +555,15 @@ const RemoveDialog = {
   init: () => {
     const dialogItem = DialogFactory.create({
       prefix: "file-delete",
-      toFetchData: (data) => {
+      inputValues: { path: appState.currentSelectedPath },
+      toFetchData: () => {
         return {
           url: `/api/files?path=${encodeURIComponent(path)}`,
           request: {
             method: "DELETE"
           }
         }
-      },
+      }
     });
     return this;
   }
