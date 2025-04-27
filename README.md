@@ -100,19 +100,17 @@ docker run -d -p 3000:3000 --name jsonkit jsonkit
 ```json
 {
     "server": {
-      "port": 3000,
-      "portWss": 8080,
-      "staticFiles": "./public"
+      "port": 3000
     },
-    "app": {
-      "version": "1.0"
+    "wss": {
+      "port": 8080
     },
     "navigation": {
         "jsonDirectory": "./examples",
         "extDataFilterSize": 2,
         "extData": {
-          "urlPath": "$.mappings[*].request.urlPath",
-          "urlPathTemplate": "$.mappings[*].request.urlPathTemplate"
+            "urlPath": "$.mappings[*].request.urlPath",
+            "urlPathTemplate": "$.mappings[*].request.urlPathTemplate"
         }
     }
 }
@@ -123,14 +121,9 @@ docker run -d -p 3000:3000 --name jsonkit jsonkit
 Секция `server` описывает параметры настройки сервера:
 
 - **`port`**: Порт для основного сервера HTTP. (Значение по умолчанию: `3000`)
-- **`portWss`**: Порт для сервера WebSocket. (Значение  по умолчанию: `8080`)
-- **`staticFiles`**: Путь к папке, содержащей статические файлы, которые будут обслуживаться сервером. (Значение  по умолчанию: `./public`)
 
-## Конфигурация приложения
-
-Секция `app` описывает основные параметры приложения:
-
-- **`version`**: Версия приложения. (Значение: `1.0`)
+Секция `wss` описывает параметры настройки сервера:
+- **`port`**: Порт для сервера WebSocket. (Значение  по умолчанию: `8080`)
 
 ## Конфигурация навигации
 

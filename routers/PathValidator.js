@@ -3,8 +3,9 @@ const path = require('path');
 class PathValidator {
     constructor(res, config, absolutePaths) {
         this.res = res;
-        this.ext = '.' + (config.ext || 'json');
-        this.jsonDirectory = path.resolve(config.jsonDirectory);
+        this.ext = (config.ext || '.json');
+        this.jsonDirectory = config.jsonDirectory;
+        this.staticFiles = config.staticFiles;
         this.valid = true; // Флаг валидности
         if (absolutePaths.some(absolutePath => (!absolutePath && absolutePath.length == 0))) {
             const msg = "Путь не может быть пустым";
@@ -30,7 +31,7 @@ class PathValidator {
             return this;
         }
         if (!this.absolutePaths.some(absolutePath => absolutePath.endsWith(this.ext))) {
-            const msg = `Неверный JSON-файл: ${absolutePath}. Требуется файл с расширением .json`;
+            const msg = `Неверный JSON-файл. Требуется файл с расширением .json`;
             console.error(msg);
             this.res.status(400).json({ error: msg });
             this.valid = false;
@@ -42,15 +43,15 @@ class PathValidator {
         if (!this.valid) {
             return this;
         }
-        if (this.absolutePaths.some(absolutePath => absolutePath.startsWith(ServerConfig.staticFilesPathResolved))) {
-            console.log(`Доступ к директории ${absolutePath} запрещён`);
+        if (this.absolutePaths.some(absolutePath => absolutePath.startsWith(this.staticFiles))) {
+            console.log(`Доступ к директории запрещён`);
             this.res.status(403).json({ error: 'Доступ запрещён' });
             this.valid = false;
             return this;
         }
 
         if(!this.absolutePaths.some(absolutePath => !absolutePath.startsWith(this.jsonDirectory))) {
-            console.log(`Доступ к директории ${absolutePath} запрещён`);
+            console.log(`Доступ к директории запрещён`);
             this.res.status(403).json({ error: 'Доступ запрещён' });
             this.valid = false;
         }

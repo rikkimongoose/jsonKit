@@ -35,7 +35,7 @@ class HttpServer {
     }
 
     start(config) {
-        const port = config.port || 8080;
+        const port = config.port || 3000;
         const host = config.host || "localhost";
         this.server = this.express.listen(port, host, () => {
             console.log(`Сервер запущен на http://${host}:${port}`);

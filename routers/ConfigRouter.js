@@ -30,7 +30,7 @@ class ConfigRouter {
     getData(req, res) {
         res.json({
             version: this.AppConstants.app.version,
-            jsonDirectory: this.config.navigation.jsonDirectoryFull,
+            jsonDirectory: this.config.navigation.jsonDirectory,
             server: this.config.server,
             wss: this.config.wss,
             extData: this.config.navigation.extData,

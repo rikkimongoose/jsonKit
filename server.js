@@ -29,11 +29,12 @@ const FileWatcherManager = require('./FileWatcherManager');
 
 const emitter = mitt();
 const configHelper = new ConfigHelper(AppConstants.dirs.config, emitter);
-const fileHelper = new FileHelper({ext: AppConstants.ext});
 const config = configHelper.config;
 
+const fileHelper = new FileHelper({ext: AppConstants.ext, extData: config.navigation.extData});
 const apiRouter = new ApiRouter({
-    jsonDirectory: config.navigation.jsonDirectory,
+    staticFiles: '.' + AppConstants.dirs.frontendDir,
+    jsonDirectory: config.navigation.jsonDirectoryFull,
     ext: AppConstants.ext
 }, emitter, fileHelper);
 const healthcheckRouter = new HealthcheckRouter();

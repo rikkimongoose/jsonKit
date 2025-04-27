@@ -10,10 +10,11 @@ const ResultType = {
 class FileHelper {
     constructor(config) {
         this.ext = '.' + (config.ext || 'json');
+        this.extData = config.extData;
     }
 
     loadDir(absolutePath) {
-        const items = fs.readDirSync(absolutePath, { withFileTypes: true });
+        const items = fs.readdirSync(absolutePath, { withFileTypes: true });
         const resultDir = [];
         const resultFiles = [];
         items.forEach(item => {
@@ -31,7 +32,7 @@ class FileHelper {
                     extData: {}
                 });
             } else if (item.name.endsWith(this.ext)) {
-                const extData = this.loadExtData(config.navigation.extData, localPath);
+                const extData = this.loadExtData(this.extData, localPath);
                 // Добавляем только JSON-файлы
                 resultFiles.push({
                     title: item.name,
@@ -46,8 +47,7 @@ class FileHelper {
         const sortByName = (a, b) => a.title.localeCompare(b.title);
         resultDir.sort(sortByName);
         resultFiles.sort(sortByName);
-        result = resultDir.concat(resultFiles);
-        return result;
+        return resultDir.concat(resultFiles);
     }
 
     loadExtData(extData, localPath) {

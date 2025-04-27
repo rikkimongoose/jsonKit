@@ -93,7 +93,7 @@ function updateUI(config) {
 }
 
 function initFileTree(config) {
-    const filepath = config.jsonDirectoryFull;
+    const filepath = config.jsonDirectory;
     const dataSourceRequest = `/api/files?path=${encodeURIComponent(filepath)}`
     $("#file-tree").fancytree({
       extensions: ["filter"],
@@ -179,7 +179,7 @@ function initFileTree(config) {
     }
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//localhost:${config.portWss}`;
+    const wsUrl = `${wsProtocol}//localhost:${config.wss.port}`;
     
     const fileTreeSocket = new WebSocket(wsUrl);
     const dataDir = config.jsonDirectoryFull;
