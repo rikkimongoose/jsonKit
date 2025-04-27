@@ -3,9 +3,6 @@ const appVersionElement = document.getElementById('app-version')
 const currentPathElement = document.getElementById('current-path');
 const leftPanelElement = document.getElementById('left-panel');
 const rightPanelElement = document.getElementById('right-panel');
-const openedFilePathDisplayElement = document.getElementById('opened-file-path-display');
-
-let editor;
 let fileTreeSocket;
 
 const appState = {
@@ -13,71 +10,85 @@ const appState = {
   $treeNode: null
 };
 
-function initJSONEditor() {
-  const container = document.getElementById('json-editor');
-  const options = {
-    mode: 'tree',
-    modes: ['tree', 'code', 'form', 'text'],
-    onError: (err) => {
-      Logger.Error(err.message, "Ошибка JSONdata.pathEditor");
-    }/*,
-    onChange: () => {
-      // Автосохранение при изменениях (опционально)
-      saveCurrentFile();
-    }*/
-  };
-  
-  editor = new JSONEditor(container, options);
-  editor.set({}); // Инициализация пустым объектом
-}
+const JsonEditorControl = {
+    container: null,
+    editor: null,
+    openedFilePathDisplayElement: null,
+    saveButton: null,
+    filePath: null,
+    init: function() {
+        this.openedFilePathDisplayElement = document.getElementById('opened-file-path-display');
+        this.container = document.getElementById('json-editor');
+        const options = {
+            mode: 'tree',
+            modes: ['tree', 'code', 'form', 'text'],
+            onError: (err) => {
+              Logger.Error(err.message, "Ошибка JSONdata.pathEditor");
+            }/*,
+            onChange: () => {
+              // Автосохранение при изменениях (опционально)
+              saveCurrentFile();
+            }*/
+        };
+        this.editor = new JSONEditor(this.container, options);
+        this.editor.set({}); // Инициализация пустым объектом
 
-function saveCurrentFile() {
-    if (!appState.currentJsonFile) return;
-    const currentJsonFile = appState.currentJsonFile;
-    const json = editor.get();
-    fetch(`/api/file?path=${encodeURIComponent(currentJsonFile)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(json, null, 2)
-    })
-    .then(response => {
-        if (response.ok) { 
-            Logger.Success(`Файл ${currentJsonFile} успешно сохранён`);
-            Logger.Debug(`Файл ${currentJsonFile} успешно сохранён`, response);
-            return response.json();
+        // Добавьте кнопку сохранения в HTML:
+        this.saveButton = document.getElementById('save-btn');
+        this.saveButton.addEventListener('click', () => this.saveCurrentFile());
+    },
+    loadJson: function(json, filePath) {
+        if (!this.editor) {
+            this.filePath = null;
+            return;
         }
-        throw new Error(`Ошибка: не удаётся сохранить файл ${currentJsonFile}:`); 
-    })
-    .catch(error => {
-        Logger.Debug(error.message);
-    });
-}
-
-// Добавьте кнопку сохранения в HTML:
-document.getElementById('save-btn').addEventListener('click', saveCurrentFile);
-
-// Модифицируем функцию showFileContent
-function showFileContent(filePath) {
-    fetch(`/api/file?path=${encodeURIComponent(filePath)}`)
+        this.openedFilePathDisplayElement.textContent = "loading...";
+        this.editor.set(json);
+        this.editor.expandAll();
+        this.openedFilePathDisplayElement.textContent = filePath || "no file selected";
+        this.filePath = filePath;
+    },
+    showFileContent: function(filePath) {
+        fetch(`/api/file?path=${encodeURIComponent(filePath)}`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                Logger.Error(error.message, `Ошибка: не удаётся открыть файл ${filePath}:`);
+            })
+            .then(json => {
+                if (!this.editor) {
+                    this.init();
+                }
+                this.loadJson(json, filePath);
+            })
+            .catch(error => {
+                Logger.Error(error.message);
+                if (this.editor) this.loadJson({ error: error.message });
+            });
+    },
+    saveCurrentFile: function() {
+        if (!appState.currentJsonFile) return;
+        const currentJsonFile = appState.currentJsonFile;
+        const json = this.editor.get();
+        fetch(`/api/file?path=${encodeURIComponent(currentJsonFile)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(json, null, 2)
+        })
         .then(response => {
-            if (response.ok) {
+            if (response.ok) { 
+                Logger.Success(`Файл ${currentJsonFile} успешно сохранён`);
+                Logger.Debug(`Файл ${currentJsonFile} успешно сохранён`, response);
                 return response.json();
             }
-            Logger.Error(error.message, `Ошибка: не удаётся открыть файл ${filePath}:`);
-        })
-        .then(json => {
-            if (!editor) {
-                initJSONEditor();
-            }
-            openedFilePathDisplayElement.textContent = filePath || "no file selected";
-            editor.set(json);
-            editor.expandAll();
+            throw new Error(`Ошибка: не удаётся сохранить файл ${currentJsonFile}:`); 
         })
         .catch(error => {
-            Logger.Error(error.message);
-            if (editor) editor.set({ error: error.message });
+            Logger.Debug(error.message);
         });
-}
+    }
+};
 
 // Функция для обновления интерфейса
 function updateUI(config) {
@@ -117,7 +128,7 @@ function initFileTree(config) {
         if (!node.data) return;        
         if (node.type === 'file') {
             appState.currentJsonFile = node.key;
-            showFileContent(appState.currentJsonFile);
+            JsonEditorControl.showFileContent(appState.currentJsonFile);
         }
       },
       sort: function(a, b) {
@@ -145,7 +156,7 @@ function initFileTree(config) {
           if (comparatorFilter.matches(title)) {
             return true;
           }
-          if (filterStrLower.length > config.extDataFilterSize && node.data && !_.isEmpty(node.data.extData)) {
+          if (filterStrLower.length > config.extDataFilterSize && node.data && node.data.extData) {
             // Получаем дополнительное поле extData, если оно задано
             return _.some(node.data.extData,
                         (items) => items.some((item) => comparatorFilter.matches(item))
@@ -295,7 +306,7 @@ function initFileTree(config) {
         case 'change':
           // Обновляем файл (если он открыт в редакторе)
           if (appState.currentJsonFile === data.path) {
-            showFileContent(data.path);
+              JsonEditorControl.showFileContent(data.path);
           }
           const nodeToUpdate = tree.getNodeByKey(data.path);
           if (nodeToUpdate) {
@@ -553,12 +564,14 @@ function initSlider() {
     });
 }
 
-function initDialogs() {
-  _.each([DirectoryCreateDialog,
-    FileCreateDialog,
-    FileRenameDialog,
-    RemoveDialog], (initDialog) => initDialog.init());
-}
+const DialogControl = {
+    init: function() {
+        [DirectoryCreateDialog,
+          FileCreateDialog,
+          FileRenameDialog,
+          RemoveDialog].forEach(initDialog => initDialog.init());
+    }
+};
 
 // Первоначальная загрузка
 document.addEventListener('DOMContentLoaded', () => {
@@ -575,7 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
           initWebSocket(config);
           updateUI(config);
           initSlider();
-          initDialogs();
+          DialogControl.init();
         })
         .catch(error => {
             Logger.Error(error.message, 'Ошибка загрузки конфигурации');
