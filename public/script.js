@@ -1,8 +1,3 @@
-// DOM элементы
-const appVersionElement = document.getElementById('app-version')
-const currentPathElement = document.getElementById('current-path');
-const leftPanelElement = document.getElementById('left-panel');
-const rightPanelElement = document.getElementById('right-panel');
 let fileTreeSocket;
 
 const appState = {
@@ -91,16 +86,22 @@ const JsonEditorControl = {
 };
 
 // Функция для обновления интерфейса
-function updateUI(config) {
-    // Обновляем заголовок и путь
-    appVersionElement.textContent = config.version;
-    currentPathElement.textContent = config.jsonDirectory;
-    
-    // Добавляем индикатор разработки
-    if (config.isDev) {
-        document.body.classList.add('dev-mode');
-        Logger.Info('[Frontend DEV] Режим разработки активирован');
-    }  
+const UIControl = {
+    appVersionElement: null,
+    currentPathElement: null,
+    init: function(config) {
+        // Обновляем заголовок и путь
+        this.appVersionElement = document.getElementById('app-version')
+        this.currentPathElement = document.getElementById('current-path');
+        this.appVersionElement.textContent = config.version;
+        this.currentPathElement.textContent = config.jsonDirectory;
+        
+        // Добавляем индикатор разработки
+        if (config.isDev) {
+            document.body.classList.add('dev-mode');
+            Logger.Info('[Frontend DEV] Режим разработки активирован');
+        }  
+    }
 }
 
 function initFileTree(config) {
@@ -158,9 +159,7 @@ function initFileTree(config) {
           }
           if (filterStrLower.length > config.extDataFilterSize && node.data && node.data.extData) {
             // Получаем дополнительное поле extData, если оно задано
-            return _.some(node.data.extData,
-                        (items) => items.some((item) => comparatorFilter.matches(item))
-                  );          
+            return Object.values(node.data.extData).some((items) => items.some((item) => comparatorFilter.matches(item)));          
           }
           return false;
       };
@@ -177,25 +176,28 @@ function initFileTree(config) {
     });
   }
 
-
-  const sortMethod = (a, b) => {
-    const x = (a.isFolder() ? "0" : "1") + a.title.toLowerCase(),
-          y = (b.isFolder() ? "0" : "1") + b.title.toLowerCase();
-    return x === y ? 0 : x > y ? 1 : -1;
-  }
-  
-  function initWebSocket(config) {
-    if (!config) {
-      return;
-    }
-
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${config.server.location}:${config.wss.port}`;
-    
-    const fileTreeSocket = new WebSocket(wsUrl);
-    const dataDir = config.jsonDirectoryFull;
-
-    fileTreeSocket.onmessage = (event) => {
+const FileTreeSocket = {
+    socket: null,
+    dataDir: null,
+    wsUrl: null,
+    init: function(config) {
+        if (!config) {
+            return;
+        }
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        this.wsUrl = `${wsProtocol}//${config.server.location}:${config.wss.port}`;
+        this.dataDir = config.jsonDirectoryFull;
+        this.initSocket(this.wsUrl);
+    },
+    initSocket: function(wsUrl) {
+        this.socket = new WebSocket(wsUrl);
+        this.socket.onmessage = this.handleEvent.bind(this);
+        this.socket.onclose = function() {
+            Logger.Warning('WebSocket disconnected, reconnecting...');
+            setTimeout(function() { this.initSocket(this.wsUrl) }, 1000);
+        };
+    },
+    handleEvent: function(event) {
       const data = JSON.parse(event.data);
       Logger.Debug('FS event:', data);
       
@@ -211,8 +213,7 @@ function initFileTree(config) {
           return pathArr.join('/');
         }
       };
-      const dataDirSplitted = pathHelper.split(dataDir);
-
+      const dataDirSplitted = pathHelper.split(this.dataDir);
       const nodesHelper = {
         parsePathInfo: function (path) {
           const pathArr = pathHelper.split(path);
@@ -276,7 +277,7 @@ function initFileTree(config) {
           }
           return null;
         },
-        findNode: function (path) {return (dataDir === path) ? tree.getRootNode() : tree.getNodeByKey(path)},
+        findNode: function (path) {return (this.dataDir === path) ? tree.getRootNode() : tree.getNodeByKey(path)},
         generateNode: function (data) { return (data.isDirectory) ? {
               title: data.basename,
               folder: true,
@@ -289,7 +290,6 @@ function initFileTree(config) {
             }
           },
       };
-
       switch(data.type) {
         case 'add':
           // Добавляем новый узел
@@ -314,13 +314,14 @@ function initFileTree(config) {
           }
           break;
       }
-    };
+    },
+};
 
-    fileTreeSocket.onclose = () => {
-      Logger.Warning('WebSocket disconnected, reconnecting...');
-      setTimeout(initWebSocket, 1000);
-    };
-  }
+const sortMethod = (a, b) => {
+  const x = (a.isFolder() ? "0" : "1") + a.title.toLowerCase(),
+        y = (b.isFolder() ? "0" : "1") + b.title.toLowerCase();
+  return x === y ? 0 : x > y ? 1 : -1;
+};
 
 // Инициализация SSE соединения для hot-reload
 function initHotReload() {
@@ -355,13 +356,12 @@ const DialogFactory = {
     const $form = $(`#${prefix}-dialog-form`);
 
     const initStatic = () => {
-      _.forOwn(inputStatic, (key, value) => $dialogDiv.find(`#${key}`).val(value()));
+        Object.entries(inputStatic).forEach(([key, value]) => $dialogDiv.find(`#${key}`).val(value()));
     };
 
     const initValues = () => {
-      _.forOwn(inputValues, (key, value) => $form.find(`#${prefix}-${key}`).val(value()));
+        Object.entries(inputValues).forEach(([key, value]) => $form.find(`#${prefix}-${key}`).val(value()));
     };
-
 
     const loadValues = () => {
       var result = {};
@@ -554,14 +554,16 @@ const RemoveDialog = {
     return this;
   }
 }
-function initSlider() {
-    // Инициализация Split.js для управления двумя колонками
+
+const SliderControl = {
+  init: function() {
     Split(['#left', '#right'], {
       sizes: [25, 75],     // начальное распределение ширины
       gutterSize: 10,      // ширина разделителя в пикселях
       minSize: 230,         // минимальная ширина каждого блока в пикселях
       cursor: 'col-resize' // вид курсора при наведении на разделитель
     });
+  }
 }
 
 const DialogControl = {
@@ -582,13 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(config => {
-          appVersionElement.textContent = config.version;
-          currentPathElement.textContent = config.jsonDirectory;
-          initFileTree(config);
-          initWebSocket(config);
-          updateUI(config);
-          initSlider();
-          DialogControl.init();
+            initFileTree(config);
+            [UIControl, FileTreeSocket, DialogControl, SliderControl].forEach(control => control.init(config));
         })
         .catch(error => {
             Logger.Error(error.message, 'Ошибка загрузки конфигурации');
@@ -597,6 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Инициализация hot-reload в режиме разработки
     if(['localhost', '127.0.0.1'].some((host) => window.location.hostname === host)) {
-      initHotReload();
+        initHotReload();
     }
 });
