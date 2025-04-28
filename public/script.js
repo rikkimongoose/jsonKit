@@ -363,7 +363,6 @@ const DialogFactory = {
   create: (options) => {
     const prefix = options.prefix || "file";
     const validation = options.validation || null;
-    const inputValues = options.inputValues || {};
     const toFetchData = options.toFetchData;
     const isAvailable = options.isAvailable || null;
 
@@ -372,10 +371,11 @@ const DialogFactory = {
     const $form = $(`#${prefix}-dialog-form`);
 
     const initValues = () => {
+        const inputValues = options.inputValues ? options.inputValues() : {};
         Object.entries(inputValues).forEach(([key, value]) => {
             const val = ('string' === typeof value) ? value : value();
-            $form.find(`#${prefix}-${key}`).val(val);
-            $dialogDiv.find(`#${prefix}-${key}-static`).val(val);
+            $(`#${prefix}-${key}`).val(val);
+            $(`#${prefix}-${key}-static`).text(val);
         });
     };
 
@@ -397,6 +397,7 @@ const DialogFactory = {
       modal: true,     // Блокирует взаимодействие с остальной страницей
       buttons: {
         "OK": function() {
+          const inputValues = options.inputValues ? options.inputValues() : {};
           // Проверка валидации формы
           if (!validation || $form.valid()) {
             const values = loadValues();
@@ -533,7 +534,7 @@ const FileRenameDialog = {
     };
     const dialogItem = DialogFactory.create({
       prefix: "file-rename",
-      inputValues: { path: appState.currentSelectedPath },
+      inputValues: () => { return { path: appState.currentSelectedPath || appState.currentJsonFile }},
       toFetchData: (data) => {
           const values = data.values || {};
           const path = (values.path || "").trim();
@@ -558,7 +559,7 @@ const RemoveDialog = {
   init: () => {
     const dialogItem = DialogFactory.create({
       prefix: "file-delete",
-      inputValues: { path: appState.currentSelectedPath },
+      inputValues: () => { return { path: appState.currentSelectedPath || appState.currentJsonFile } },
       toFetchData: () => {
         return {
           url: `/api/files?path=${encodeURIComponent(path)}`,
