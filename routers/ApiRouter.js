@@ -81,7 +81,6 @@ class ApiRouter {
 
     getDirectory(req, res) {
         try {
-            console.log(req.query);
             const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
                 .isAllowed()
                 .then(absolutePath => res.json(this.fileHelper.loadDir(absolutePath)) );
@@ -119,17 +118,21 @@ class ApiRouter {
     }
     
     createDirectory(req, res) {
-        const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
+        const validator = new PathValidator(res, this.generateValidatorConfig(), [req.body.path])
             .isAllowed()
             .then(absolutePath => {
-                const absoluteDirPath = path.dirname(filePath);
                 try {
-                    if (!fs.existsSync(absoluteDirPath)) {
-                        fs.mkdirSync(absoluteDirPath, { recursive: true } );
+                    if (!fs.existsSync(absolutePath)) {
+                        fs.mkdirSync(absolutePath, { recursive: true } );
+                        return res.json({ 
+                            success: true,
+                            message: `Успешно создана папка ${absolutePath}`,
+                            path: absolutePath
+                        });
                     }
                 } catch (err) {
                     if(!this.checkFsErr(res, err, `Ошибка создания папки: ${absolutePath}`)) {
-                    return;
+                        return;
                     }
                 }
             });

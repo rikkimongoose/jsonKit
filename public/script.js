@@ -250,7 +250,18 @@ const FileTreeSocket = {
         },
         addDir: function(path) {
           const pathInfo = this.parsePathInfo(path);
-          return this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted([...pathInfo.pathArr, pathInfo.fileName]);
+          const parentNode = this.findNode(pathInfo.pathDirJoined);
+          if(!parentNode) {
+            return this.addDirSplitted([...pathInfo.pathArr, pathInfo.fileName]);
+          }
+          const nextNode = this.generateNode({
+              basename: pathInfo.fileName,
+              path: path,
+              isDirectory: true
+          });
+          parentNode.addChildren(nextNode);
+          parentNode.sortChildren(sortMethod, true);
+          return nextNode;
         },
         addDirSplitted: function (pathSplitted) {
           let node = tree.getRootNode();
@@ -362,7 +373,7 @@ const DialogFactory = {
 
     const initValues = () => {
         Object.entries(inputValues).forEach(([key, value]) => {
-            const val = value();
+            const val = ('string' === typeof value) ? value : value();
             $form.find(`#${prefix}-${key}`).val(val);
             $dialogDiv.find(`#${prefix}-${key}-static`).val(val);
         });
@@ -389,7 +400,7 @@ const DialogFactory = {
           // Проверка валидации формы
           if (!validation || $form.valid()) {
             const values = loadValues();
-            const fetchData = toFetchData({values, inputValues, inputStatic});
+            const fetchData = toFetchData({values, inputValues});
             // Выполняем fetch запрос
             fetch(fetchData.url, fetchData.request)
             .then(function(response) {
@@ -400,7 +411,7 @@ const DialogFactory = {
             })
             .then(function(data) {
               // Если запрос успешен, закрываем диалог
-              dialog.dialog("close");
+              $dialogDiv.dialog("close");
             })
             .catch(function(error) {
               Logger.Error(error.message, "Ошибка запроса");
@@ -413,8 +424,7 @@ const DialogFactory = {
       },
       close: function() {
         // Сброс формы при закрытии диалога
-        $form.reset();
-        $form.validate().resetForm();
+        $dialogDiv.find('input').val('');
       }
     });
   
@@ -453,7 +463,7 @@ const DirectoryCreateDialog = {
       prefix: "directory",
       toFetchData: (data) => {
           const values = data.values || {};
-          const path = (values.path || "").trim();
+          const path = [appState.currentSelectedPath, (values.path || "").trim()].join('/');
           return {
             url: "/api/files",
             request: {

@@ -21,7 +21,7 @@ class FileHelper {
             const localDirPath = path.resolve(item.parentPath);
             const localPath = path.join(localDirPath, item.name);
             if (item.isDirectory()) {
-                const subDir = loadDir(localPath);
+                const subDir = this.loadDir(localPath);
                 // Добавляем директорию
                 resultDir.push({
                     title: item.name,

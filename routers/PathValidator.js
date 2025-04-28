@@ -7,7 +7,7 @@ class PathValidator {
         this.jsonDirectory = config.jsonDirectory;
         this.staticFiles = config.staticFiles;
         this.valid = true; // Флаг валидности
-        if (absolutePaths.some(absolutePath => (!absolutePath && absolutePath.length == 0))) {
+        if (absolutePaths.some(absolutePath => (absolutePath && absolutePath.length == 0))) {
             const msg = "Путь не может быть пустым";
             console.error(msg);
             res.status(400).json({ error: msg });
@@ -18,7 +18,11 @@ class PathValidator {
                 if(absolutePath.startsWith(this.jsonDirectory)) {
                     return absolutePath;
                 }
-                return path.resolve(absolutePath.trim());
+                const absolutePathTrim = absolutePath.trim();
+                if(path.resolve(absolutePathTrim) === this.jsonDirectory) {
+                    return this.jsonDirectory;
+                }
+                return path.join(this.jsonDirectory, absolutePathTrim);
             });
         }
     }
@@ -49,7 +53,7 @@ class PathValidator {
             return this;
         }
         if (this.absolutePaths.some(absolutePath => absolutePath.startsWith(this.staticFiles))) {
-            console.log(`Доступ к директории запрещён`);
+            console.error(`Доступ к директории запрещён`);
             this.res.status(403).json({ error: 'Доступ запрещён' });
             this.valid = false;
             return this;
