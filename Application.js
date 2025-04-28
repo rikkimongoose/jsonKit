@@ -8,8 +8,8 @@ class Application {
     }
     
     start() {
-        this.httpServer.start(this.config.server);
-        this.webSocketServer.start(this.config.ws);
+        this.httpServer.start({ ...this.config.server, http: this.config.http, https: this.config.https });
+        this.webSocketServer.start({ ...this.config.websocket, http: this.config.http, https: this.config.https });
         this.fileWatcherManager.createWatchers();
     }
   

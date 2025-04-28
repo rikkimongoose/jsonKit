@@ -100,15 +100,34 @@ docker run -d -p 3000:3000 --name jsonkit jsonkit
 ```json
 {
     "server": {
-      "port": 3000
+        "port": 3000,
+        "portHttps": 443,
+        "host": "localhost",
+        "backlog": 511
     },
-    "ws": {
-      "port": 8080,
-      "tls": {
-          "port": 8443,
-          "key": "path/to/private-key.pem",
-          "cert": "path/to/certificate.pem"
-      }
+    "websocket": {
+        "port": 8080,
+        "portHttps": 8443,
+        "path": "/",
+        "maxPayload": 1048576,
+        "clientTracking": true,
+        "perMessageDeflate": true
+    },
+    "http": {
+        "timeout": 120000,
+        "headersTimeout": 60000,
+        "keepAliveTimeout": 5000
+    },
+    "https": {
+        "key": "./path/to/key.pem",
+        "cert": "./path/to/cert.pem",
+        "ca": [
+            "./path/to/ca1.pem",
+            "./path/to/ca2.pem"
+        ],
+        "requestCert": true,
+        "rejectUnauthorized": false,
+        "sessionTimeout": 300
     },
     "navigation": {
         "jsonDirectory": "./examples",
@@ -124,12 +143,28 @@ docker run -d -p 3000:3000 --name jsonkit jsonkit
 ## Конфигурация сервера
 
 Секция `server` описывает параметры настройки сервера:
-
 - **`port`**: Порт для основного сервера HTTP. (Значение по умолчанию: `3000`)
+- **`portHttps`**: Порт для сервера HTTPS. (Значение по умолчанию: `3000`)
+- **`host`**: адрес, на котором запускается сервер. (Значение по умолчанию: `localhost`)
+- **`backlog`**: максимальное количество ожидающих соединений. (Значение по умолчанию: `3000`)
 
-Секция `wss` описывает параметры настройки сервера:
+Секция `websocket` описывает параметры настройки WebSocket:
 - **`port`**: Порт для сервера WebSocket. (Значение по умолчанию: `8080`)
-- **`tls`**: Описание параметров для доступа к web socket через HTTPS
+- **`port`**: Порт для основного сервера HTTP. (Значение по умолчанию: `3000`)
+- **`path`**: путь для WebSocket. (Значение по умолчанию: `\`)
+- **`maxPayload`**: максимальный размер полезной нагрузки.
+- **`clientTracking`**: включенное хранение подключенных клиентов.
+- **`perMessageDeflate`**: поддержка компрессии сообщений.
+
+Секция `http` описывает параметры настройки HTTP:
+- **`timeout`**: время ожидания соединений.
+- **`headersTimeout`**: время ожидания заголовков запроса.
+- **`keepAliveTimeout`**: максимальное время ожидания соединения Keep-Alive.
+
+Секция `https` описывает параметры настройки HTTPS:
+- **`key`**, **`cert`**, **`ca`**: пути к файлам TLS-сертификатов.
+- **`requestCert`**: запрашивать ли клиентские сертификаты.
+- **`rejectUnauthorized`**: блокировать соединения без корректного сертификата.
 
 ## Конфигурация навигации
 

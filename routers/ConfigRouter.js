@@ -28,15 +28,12 @@ class ConfigRouter {
     }
     
     getData(req, res) {
-        const wsConfig = { ...this.config.ws };
-        wsConfig.tls = null;
         res.json({
             version: this.AppConstants.app.version,
             jsonDirectory: this.config.navigation.jsonDirectory,
             jsonDirectoryFull: this.config.navigation.jsonDirectoryFull,
             server: this.config.server,
-            ws: wsConfig,
-            wss: { port: (this.config.ws.tls ? this.config.ws.tls.port : this.config.ws.port) },
+            websocket: this.config.websocket,
             extData: this.config.navigation.extData,
             extDataFilterSize: this.config.navigation.extDataFilterSize,
             isDev: this.config.isDev

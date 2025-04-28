@@ -1,6 +1,20 @@
 const fs = require('fs-extra');
 const path = require('path');
 
+function loadTlsOptions(tlsOptions) {
+    try {
+        return {
+            ...config,
+            key: fs.readFileSync(tlsOptions.key),
+            cert: fs.readFileSync(tlsOptions.cert),
+            ca: tlsOptions.ca.map(path => fs.readFileSync(path))
+        };
+    } catch (error) {
+        console.error('Ошибка загрузки TLS-конфигурации:', error.message);
+        return null;
+    }
+}
+
 class ConfigHelper {
     constructor(config, emitter) {
         this.source = config.source;
@@ -43,6 +57,7 @@ class ConfigHelper {
     updateConfig(config) {
         const configOriginal = {...config};
         configOriginal.isDev = this.isDev;
+        configOriginal.https = loadTlsOptions(configOriginal.https);
         configOriginal.navigation.jsonDirectoryFull = path.resolve(configOriginal.navigation.jsonDirectory);
         return configOriginal;
     }

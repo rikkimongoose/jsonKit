@@ -195,7 +195,7 @@ const FileTreeSocket = {
         }
         const isHttps = window.location.protocol === 'https:';
         const wsProtocol = isHttps ? 'wss:' : 'ws:';
-        const wsPort = isHttps ? config.wss.port : config.ws.port
+        const wsPort = isHttps ? config.websocket.portHttps : config.websocket.port;
         this.wsUrl = `${wsProtocol}//${config.server.host}:${wsPort}`;
         this.dataDir = config.jsonDirectoryFull;
         this.initSocket(this.wsUrl);

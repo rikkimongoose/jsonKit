@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
+const http = require('http');
 const https = require('https');
-const fs = require('fs');
 
 class WebSocketServer {
     constructor(emitter) {
@@ -13,7 +13,7 @@ class WebSocketServer {
 
         emitter.on('config:update', (e) => {
             this.stop();
-            this.start(e.ws);
+            this.start({ ...e.websocket, http: e.http, https: e.https });
         });
         emitter.on('files:change', (e) => {
             this.handleFileEvent(e);
@@ -28,8 +28,12 @@ class WebSocketServer {
     }
   
     start(config) {
-        this.ws = new WebSocket.Server(config);
-
+        if (config.http) {
+            const server = http.createServer(config.http);
+            this.ws = new WebSocket.Server({ ...config, server });
+        } else {
+            this.ws = new WebSocket.Server(config);
+        }
         this.ws.on('connection', (ws) => {
             this.clients.add(ws);
             
@@ -38,16 +42,13 @@ class WebSocketServer {
             });
         });
 
-        if(config.tls) {
-            const configTls = { ...config.tls };
-            configTls.key = fs.readFileSync(configTls.key);
-            configTls.cert = fs.readFileSync(configTls.cert);
-            if (configTls.ca) {
-                configTls.ca = configTls.ca.map(fileName => fs.readFileSync(fileName));
-            }
-
-            const server = https.createServer(options);
-            this.wss = new WebSocket.Server({ server });
+        if (config.https) {
+            const server = https.createServer(config.https);
+            const configHttps = {
+                ...config,
+                port: config.portHttps
+            };
+            this.wss = new WebSocket.Server({ ...configHttps, server });
             this.wss.on('connection', (wss) => {
                 this.clients.add(wss);
                 

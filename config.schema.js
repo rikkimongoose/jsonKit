@@ -1,19 +1,37 @@
 const Joi = require('joi');
 
-// Схема для валидации config.json
 const configSchema = Joi.object({
   server: Joi.object({
     port: Joi.number().integer().min(1).max(65535).required(),
-    host: Joi.string().default('localhost')
+    portHttps: Joi.number().integer().min(1).max(65535),
+    host: Joi.string().hostname().default("localhost"),
+    backlog: Joi.number().integer().default(511).min(0)
   }).required(),
-  ws: Joi.object({
+
+  websocket: Joi.object({
     port: Joi.number().integer().min(1).max(65535).required(),
-    tls: Joi.object({
-        port: Joi.number().integer().min(1).max(65535).required(),
-        key: Joi.string(),
-        cert: Joi.string()
-    })
+    portHttps: Joi.number().integer().min(1).max(65535),
+    path: Joi.string().pattern(/^\/[a-zA-Z0-9/_-]*$/).default("/"),
+    maxPayload: Joi.number().integer().min(1),
+    clientTracking: Joi.boolean(),
+    perMessageDeflate: Joi.boolean()
   }).required(),
+
+  http: Joi.object({
+    timeout: Joi.number().integer().min(0),
+    headersTimeout: Joi.number().integer().min(0),
+    keepAliveTimeout: Joi.number().integer().min(0)
+  }),
+
+  https: Joi.object({
+    key: Joi.string().required(),
+    cert: Joi.string().required(),
+    ca: Joi.array().items(Joi.string()),
+    requestCert: Joi.boolean(),
+    rejectUnauthorized: Joi.boolean(),
+    sessionTimeout: Joi.number().integer().min(1)
+  }),
+
   navigation: Joi.object({
     jsonDirectory: Joi.string()
       .default('.')
@@ -25,7 +43,7 @@ const configSchema = Joi.object({
       }, 'path validation'),
       extDataFilterSize:  Joi.number().integer().min(1).max(65535).default(2).required(),
     extData: Joi.object().default(null)
-  }).default()
+  })
 });
 
 module.exports = configSchema;
