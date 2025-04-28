@@ -14,7 +14,12 @@ class PathValidator {
             this.absolutePaths = [];
             this.valid = false;
         } else {
-            this.absolutePaths = absolutePaths.map(absolutePath => path.resolve(absolutePath.trim()));
+            this.absolutePaths = absolutePaths.map(absolutePath => {
+                if(absolutePath.startsWith(this.jsonDirectory)) {
+                    return absolutePath;
+                }
+                return path.resolve(absolutePath.trim());
+            });
         }
     }
 
@@ -48,12 +53,6 @@ class PathValidator {
             this.res.status(403).json({ error: 'Доступ запрещён' });
             this.valid = false;
             return this;
-        }
-
-        if(!this.absolutePaths.some(absolutePath => !absolutePath.startsWith(this.jsonDirectory))) {
-            console.log(`Доступ к директории запрещён`);
-            this.res.status(403).json({ error: 'Доступ запрещён' });
-            this.valid = false;
         }
         return this;
     }

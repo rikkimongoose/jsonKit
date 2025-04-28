@@ -3,12 +3,12 @@ const path = require('path');
 
 function loadTlsOptions(tlsOptions) {
     try {
-        return {
-            ...config,
+        return tlsOptions ? {
+            ...tlsOptions,
             key: fs.readFileSync(tlsOptions.key),
             cert: fs.readFileSync(tlsOptions.cert),
             ca: tlsOptions.ca.map(path => fs.readFileSync(path))
-        };
+        } : null;
     } catch (error) {
         console.error('Ошибка загрузки TLS-конфигурации:', error.message);
         return null;

@@ -7,7 +7,7 @@ class ApiRouter {
     constructor(config, emitter, fileHelper) {
         this.emitter = emitter;
         this.router = express.Router();
-        this.jsonDirectory = config.jsonDirectoryFull;
+        this.jsonDirectory = config.jsonDirectory;
         this.staticFiles = path.resolve(config.staticFiles);
         this.ext = '.' + (config.ext || 'json');
         this.url = "/api";
@@ -81,6 +81,7 @@ class ApiRouter {
 
     getDirectory(req, res) {
         try {
+            console.log(req.query);
             const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
                 .isAllowed()
                 .then(absolutePath => res.json(this.fileHelper.loadDir(absolutePath)) );
