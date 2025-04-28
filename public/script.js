@@ -193,8 +193,10 @@ const FileTreeSocket = {
         if (!config) {
             return;
         }
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        this.wsUrl = `${wsProtocol}//${config.server.location}:${config.wss.port}`;
+        const isHttps = window.location.protocol === 'https:';
+        const wsProtocol = isHttps ? 'wss:' : 'ws:';
+        const wsPort = isHttps ? config.wss.port : config.ws.port
+        this.wsUrl = `${wsProtocol}//${config.server.host}:${wsPort}`;
         this.dataDir = config.jsonDirectoryFull;
         this.initSocket(this.wsUrl);
     },

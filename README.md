@@ -102,8 +102,13 @@ docker run -d -p 3000:3000 --name jsonkit jsonkit
     "server": {
       "port": 3000
     },
-    "wss": {
-      "port": 8080
+    "ws": {
+      "port": 8080,
+      "tls": {
+          "port": 8443,
+          "key": "path/to/private-key.pem",
+          "cert": "path/to/certificate.pem"
+      }
     },
     "navigation": {
         "jsonDirectory": "./examples",
@@ -123,7 +128,8 @@ docker run -d -p 3000:3000 --name jsonkit jsonkit
 - **`port`**: Порт для основного сервера HTTP. (Значение по умолчанию: `3000`)
 
 Секция `wss` описывает параметры настройки сервера:
-- **`port`**: Порт для сервера WebSocket. (Значение  по умолчанию: `8080`)
+- **`port`**: Порт для сервера WebSocket. (Значение по умолчанию: `8080`)
+- **`tls`**: Описание параметров для доступа к web socket через HTTPS
 
 ## Конфигурация навигации
 

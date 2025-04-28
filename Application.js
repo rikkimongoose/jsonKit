@@ -9,7 +9,7 @@ class Application {
     
     start() {
         this.httpServer.start(this.config.server);
-        this.webSocketServer.start(this.config.wss);
+        this.webSocketServer.start(this.config.ws);
         this.fileWatcherManager.createWatchers();
     }
   

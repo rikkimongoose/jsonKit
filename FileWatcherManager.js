@@ -29,12 +29,12 @@ class FileWatcherManager {
         configWatcher.on('change', () => {
             console.log('\n[DEV] Обнаружено изменение конфига');
             const oldPort = config.server.port;
-            const oldLocation = config.server.location;
+            const oldHost = config.server.host;
             config = loadConfig();
           
             if (oldPort !== config.server.port) {
                 console.log('[DEV] Порт изменился. Требуется перезапуск сервера.');
-            } else if (oldLocation !== config.server.location) {
+            } else if (oldHost !== config.server.host) {
                 console.log('[DEV] Расположение изменилось. Требуется перезапуск сервера.');
             }
             this.emitter.emit('config:changed', config);

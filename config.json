@@ -2,7 +2,7 @@
     "server": {
       "port": 3000
     },
-    "wss": {
+    "ws": {
       "port": 8080
     },
     "navigation": {

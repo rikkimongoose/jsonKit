@@ -4,10 +4,15 @@ const Joi = require('joi');
 const configSchema = Joi.object({
   server: Joi.object({
     port: Joi.number().integer().min(1).max(65535).required(),
-    location: Joi.string().default('localhost')
+    host: Joi.string().default('localhost')
   }).required(),
-  wss: Joi.object({
-    port: Joi.number().integer().min(1).max(65535).required()
+  ws: Joi.object({
+    port: Joi.number().integer().min(1).max(65535).required(),
+    tls: Joi.object({
+        port: Joi.number().integer().min(1).max(65535).required(),
+        key: Joi.string(),
+        cert: Joi.string()
+    })
   }).required(),
   navigation: Joi.object({
     jsonDirectory: Joi.string()
