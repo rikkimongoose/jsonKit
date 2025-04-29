@@ -106,7 +106,7 @@ docker run -d -p 3000:3000 --name jsonkit jsonkit
         "backlog": 511
     },
     "websocket": {
-        "port": 8080,
+        "port": 3030,
         "portHttps": 8443,
         "path": "/",
         "maxPayload": 1048576,

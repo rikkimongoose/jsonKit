@@ -60,6 +60,14 @@ class ConfigHelper {
             console.log(`Рабочая директория загружена из переменных окружения: ${process.env.MOCKFILES_DIR}`);
             configOriginal.navigation.jsonDirectory = process.env.MOCKFILES_DIR;
         }
+        if (process.env.PORT) {
+            console.log(`Порт приложения загружен из переменной окружения: ${process.env.PORT}`);
+            configOriginal.server.port = process.env.MOCKFILES_DIR;
+        }
+        if (process.env.WS_PORT) {
+            console.log(`Порт WebSocket загружен из переменной окружения: ${process.env.WS_PORT}`);
+            configOriginal.websocket.port = process.env.WS_PORT;
+        }
         configOriginal.isDev = this.isDev;
         configOriginal.https = loadTlsOptions(configOriginal.https);
         configOriginal.navigation.jsonDirectoryFull = path.resolve(configOriginal.navigation.jsonDirectory);
