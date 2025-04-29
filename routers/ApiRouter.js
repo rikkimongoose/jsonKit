@@ -175,7 +175,6 @@ class ApiRouter {
     }
 
     deleteFile(req, res) {
-        console.log("req.query", req.query);
         const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
             .isAllowed()
             .then(absolutePath => {
