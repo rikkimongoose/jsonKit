@@ -3,18 +3,20 @@ const appState = {
     selectedPath: "",
     selectedDirectory: "",
     selectedFileName: "",
+    selectedIsFolder: false,
     selectNode: function(node) {
         this.selectedPath = node.key;
         const splitted = this.selectedPath.split('/');
         if(node.folder) {
             this.selectedFileName = splitted[splitted.length - 1];
             this.selectedDirectory = this.selectedPath;
+            this.selectedIsFolder = true;
         } else {
             this.selectedFileName = splitted.pop();
             this.selectedDirectory = splitted.join('/');
             this.jsonFile = this.selectedPath;
+            this.selectedIsFolder = false;
         }
-        console.log("appState", appState);
     }
 };
 
@@ -164,31 +166,31 @@ const FileTreeControl = {
         // Фильтрация дерева
         this.treeFilter = $("#tree-filter");
         this.treeFilter.on("keyup", function(e) {
-          const filterStr = $(this).val();
-          if (e && e.which === $.ui.keyCode.ESCAPE || filterStr.trim() === "") {
-              $(this).val("");
-              FileTreeControl.fancytree.clearFilter();
-              return;
-          }
-          const filter = (node) => {
-              // Приводим к нижнему регистру для нечувствительности к регистру
-              var title = node.title ? node.title.trim().toLowerCase() : "";
-              var filterStrLower = filterStr.trim().toLowerCase();
-              const comparatorFilter = ComparatorFactory.generateComparator(filterStrLower);
+            const filterStr = $(this).val();
+            if (e && e.which === $.ui.keyCode.ESCAPE || filterStr.trim() === "") {
+                $(this).val("");
+                FileTreeControl.fancytree.clearFilter();
+                return;
+            }
+            const filter = (node) => {
+                // Приводим к нижнему регистру для нечувствительности к регистру
+                var title = node.title ? node.title.trim().toLowerCase() : "";
+                var filterStrLower = filterStr.trim().toLowerCase();
+                const comparatorFilter = ComparatorFactory.generateComparator(filterStrLower);
 
-              if (comparatorFilter.matches(title)) {
-                return true;
-              }
-              if (filterStrLower.length > config.extDataFilterSize && node.data && node.data.extData) {
-                  // Получаем дополнительное поле extData, если оно задано
-                  return Object.values(node.data.extData).some((items) => items.some((item) => comparatorFilter.matches(item)));          
-              }
-              return false;
-          };
-          
-          FileTreeControl.fancytree.filterNodes(filter, {
-              autoExpand: true
-          });
+                if (comparatorFilter.matches(title)) {
+                    return true;
+                }
+                if (filterStrLower.length > config.extDataFilterSize && node.data && node.data.extData) {
+                    // Получаем дополнительное поле extData, если оно задано
+                    return Object.values(node.data.extData).some((items) => items.some((item) => comparatorFilter.matches(item)));          
+                }
+                return false;
+            };
+            
+            FileTreeControl.fancytree.filterNodes(filter, {
+                autoExpand: true
+            });
         });
       
         // Кнопка обновления
@@ -241,91 +243,90 @@ const FileTreeSocket = {
       const dataDirSplitted = pathHelper.split(this.dataDir);
       const nodesHelper = {
         parsePathInfo: function (path) {
-          const pathArr = pathHelper.split(path);
-          const fileName = pathArr.pop();
-          const pathDirJoined = pathHelper.join(pathArr);
-          return {pathArr, fileName, pathDirJoined};
+            const pathArr = pathHelper.split(path);
+            const fileName = pathArr.pop();
+            const pathDirJoined = pathHelper.join(pathArr);
+            return {pathArr, fileName, pathDirJoined};
         },
         addFile: function(path, extData) {
-          const pathInfo = this.parsePathInfo(path);
-          let nodeDir = this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted(pathInfo.pathArr);
-          if (!nodeDir) {
-              return null;
-          }
-          const fileNode = this.generateNode({
-            basename: pathInfo.fileName,
-            path: path,
-            isDirectory: false,
-            extData: extData
-          });
-          nodeDir.addChildren(fileNode);
-          nodeDir.sortChildren(sortMethod, true);
-          return this.findNode(path);
+            const pathInfo = this.parsePathInfo(path);
+            let nodeDir = this.findNode(pathInfo.pathDirJoined) || this.addDirSplitted(pathInfo.pathArr);
+            if (!nodeDir) {
+                return null;
+            }
+            const fileNode = this.generateNode({
+                basename: pathInfo.fileName,
+                path: path,
+                isDirectory: false,
+                extData: extData
+            });
+            nodeDir.addChildren(fileNode);
+            nodeDir.sortChildren(sortMethod, true);
+            return this.findNode(path);
         },
         addDir: function(path) {
-          const pathInfo = this.parsePathInfo(path);
-          const parentNode = this.findNode(pathInfo.pathDirJoined);
-          if(!parentNode) {
-            return this.addDirSplitted([...pathInfo.pathArr, pathInfo.fileName]);
-          }
-          const nextNode = this.generateNode({
-              basename: pathInfo.fileName,
-              path: path,
-              isDirectory: true
-          });
-          parentNode.addChildren(nextNode);
-          parentNode.sortChildren(sortMethod, true);
-          return nextNode;
-        },
-        addDirSplitted: function (pathSplitted) {
-          let node = tree.getRootNode();
-          let index = dataDirSplitted.length;
-          let isEndReached = false; 
-          while (index < pathSplitted.length) {
-            const currentIndex = index;
-            index++;
-
-            const currentDir = pathHelper.join(pathSplitted, currentIndex + 1);
-            if (!isEndReached) {
-              const newNode = this.findNode(currentDir);
-              if (newNode) {
-                node = newNode;
-                continue;
-              }
-              isEndReached = true;
+            const pathInfo = this.parsePathInfo(path);
+            const parentNode = this.findNode(pathInfo.pathDirJoined);
+            if(!parentNode) {
+              return this.addDirSplitted([...pathInfo.pathArr, pathInfo.fileName]);
             }
             const nextNode = this.generateNode({
-                basename: pathSplitted[currentIndex],
-                path: currentDir,
+                basename: pathInfo.fileName,
+                path: path,
                 isDirectory: true
             });
-            node.addChildren(nextNode);
-            node.sortChildren(sortMethod, true);
-            node = tree.getNodeByKey(currentDir);
-          }
-          return node;
+            parentNode.addChildren(nextNode);
+            parentNode.sortChildren(sortMethod, true);
+            return nextNode;
+        },
+        addDirSplitted: function (pathSplitted) {
+            let node = tree.getRootNode();
+            let index = dataDirSplitted.length;
+            let isEndReached = false; 
+            while (index < pathSplitted.length) {
+                const currentIndex = index;
+                index++;
+                const currentDir = pathHelper.join(pathSplitted, currentIndex + 1);
+                if (!isEndReached) {
+                    const newNode = this.findNode(currentDir);
+                    if (newNode) {
+                        node = newNode;
+                        continue;
+                    }
+                    isEndReached = true;
+                }
+                const nextNode = this.generateNode({
+                    basename: pathSplitted[currentIndex],
+                    path: currentDir,
+                    isDirectory: true
+                });
+                node.addChildren(nextNode);
+                node.sortChildren(sortMethod, true);
+                node = tree.getNodeByKey(currentDir);
+            }
+            return node;
         },
         remove: function (path) {
-          // Удаляем узел
-          const nodeToRemove = tree.getNodeByKey(path);
-          if (nodeToRemove) {
-            nodeToRemove.remove();
-          }
-          return null;
+            // Удаляем узел
+            const nodeToRemove = tree.getNodeByKey(path);
+            if (nodeToRemove) {
+                nodeToRemove.remove();
+            }
+            return null;
         },
         findNode: function (path) {return (this.dataDir === path) ? tree.getRootNode() : tree.getNodeByKey(path)},
         generateNode: function (data) { return (data.isDirectory) ? {
-              title: data.basename,
-              folder: true,
-              key: data.path,
-              type: 'directory'
+                title: data.basename,
+                folder: true,
+                key: data.path,
+                type: 'directory'
             } : {
-              title: data.basename,
-              key: data.path,
-              type: 'file',
-              extData: data.extData
+                title: data.basename,
+                key: data.path,
+                type: 'file',
+                extData: data.extData
             }
-          },
+          }
       };
       switch(data.type) {
         case 'add':
@@ -394,48 +395,46 @@ const DialogFactory = {
     };
 
     const loadValues = () => {
-      var result = {};
-      // Ищем все input внутри контейнера и перебираем их
-      $dialogDiv.find('input').each(function() {
-          var $input = $(this);
-          var name = $input.attr('name');
-          if (name) {
-              result[name] = $input.val();
-          }
-      });
-      return result;
+        var result = {};
+        // Ищем все input внутри контейнера и перебираем их
+        $dialogDiv.find('input').each(function() {
+            var $input = $(this);
+            var name = $input.attr('name');
+            if (name) {
+                result[name] = $input.val();
+            }
+        });
+        return result;
     }
 
     const dialog = $dialogDiv.dialog({
-      autoOpen: false, // Диалог не открывается автоматически
-      modal: true,     // Блокирует взаимодействие с остальной страницей
-      buttons: {
-        "OK": function() {
-          const inputValues = options.inputValues ? options.inputValues() : {};
-          // Проверка валидации формы
-          if (!validation || $form.valid()) {
-            const values = loadValues();
-            const fetchData = toFetchData({values, inputValues});
-            // Выполняем fetch запрос
-            fetch(fetchData.url, fetchData.request)
-            .then(function(response) {
-              if (!response.ok) {
-                throw new Error("Ошибка сети");
-              }
-              return response.json();
-            })
-            .then(function(data) {
-              // Если запрос успешен, закрываем диалог
-              $dialogDiv.dialog("close");
-            })
-            .catch(function(error) {
-              Logger.Error(error.message, "Ошибка запроса");
-            });
-          }
-        },
-        "Cancel": function() {
-          $(this).dialog("close");
-        }
+        autoOpen: false, // Диалог не открывается автоматически
+        modal: true,     // Блокирует взаимодействие с остальной страницей
+        buttons: {
+            "OK": function() {
+                const inputValues = options.inputValues ? options.inputValues() : {};
+                // Проверка валидации формы
+                if (validation && !$form.valid()) {
+                    return;
+                }
+                const values = loadValues();
+                const fetchData = toFetchData({values, inputValues});
+                // Выполняем fetch запрос
+                fetch(fetchData.url, fetchData.request)
+                    .then(function(response) {
+                      if (!response.ok) {
+                          throw new Error("Ошибка сети");
+                      }
+                      $dialogDiv.dialog("close");
+                      return response.json();
+                    })
+                    .catch(function(error) {
+                        Logger.Error(error.message, "Ошибка запроса");
+                    });
+            },
+            "Cancel": function() {
+                $(this).dialog("close");
+            }
       },
       close: function() {
         // Сброс формы при закрытии диалога
@@ -444,17 +443,17 @@ const DialogFactory = {
     });
   
     if(validation && $form.length) {
-      // Инициализация плагина валидации для формы
-      $form.validate(validation);
+        // Инициализация плагина валидации для формы
+        $form.validate(validation);
     }
 
     // Открытие диалога по нажатию на кнопку
     const $btnOpenDialog = $(`#btn-${prefix}`); 
     $btnOpenDialog.on("click", function() {
-      if(!isAvailable || isAvailable()) {
-        initValues();
-        dialog.dialog("open");
-      }
+        if(!isAvailable || isAvailable()) {
+            initValues();
+            dialog.dialog("open");
+        }
     });
     return this;
   }
@@ -515,17 +514,16 @@ const FileCreateDialog = {
       toFetchData: (data) => {
           const values = data.values || {}; 
           const newFilePath = [appState.selectedDirectory, (values.path || "").trim()].join('/');
-          const path = newFilePath + (!newFilePath.endsWith(".json") ? ".json" : '' );
-          console.log(`Creating file at ${path}`);
+          const path = newFilePath + (!newFilePath.endsWith(".json") ? ".json" : '');
           return {
-            url: "/api/file",
-            request: {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ path })
-            }
+              url: "/api/file",
+              request: {
+                  method: "POST",
+                  headers: {
+                      "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify({ path })
+              }
           }
       },
       validation
@@ -549,23 +547,31 @@ const FileRenameDialog = {
       }
     };
     const dialogItem = DialogFactory.create({
-      prefix: "file-rename",
-      inputValues: () => { return { path: appState.selectedFileName } },
-      toFetchData: (data) => {
-          const values = data.values || {};
-          const path = (values.path || "").trim();
-          return {
-            url: "/api/files",
-            request: {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ pathOld: appState.selectedPath, pathNew: path })
+        prefix: "file-rename",
+        inputValues: () => { return { path: appState.selectedFileName } },
+        toFetchData: (data) => {
+            const values = data.values || {};
+            const splitted = appState.selectedDirectory.split('/');
+            const pathTrimmed = (values.path || "").trim();
+            if(appState.selectedIsFolder) {
+                splitted[splitted.length - 1] = pathTrimmed;
+            } else {
+                splitted.push(pathTrimmed);
             }
-          }
-      },
-      validation
+            const newFilePath = splitted.join('/');
+            const path = newFilePath + (!(appState.selectedIsFolder || newFilePath.endsWith(".json")) ? ".json" : '');
+            return {
+                url: "/api/file-rename",
+                request: {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ pathOld: appState.selectedPath, pathNew: path })
+                }
+            }
+        },
+        validation
     });
     return this;
   }
@@ -576,17 +582,17 @@ const RemoveDialog = {
     const dialogItem = DialogFactory.create({
       prefix: "file-delete",
       inputValues: () => { return { 
-          fileName: appState.selectedFileName
-        }
+              fileName: appState.selectedFileName
+          }
       },
       toFetchData: (data) => {
-        const path = appState.selectedPath;
-        return {
-          url: `/api/file?path=${encodeURIComponent(path)}`,
-          request: {
-            method: "DELETE"
+          const path = appState.selectedPath;
+          return {
+              url: `/api/file?path=${encodeURIComponent(path)}`,
+              request: {
+                  method: "DELETE"
+              }
           }
-        }
       }
     });
     return this;

@@ -139,29 +139,36 @@ class ApiRouter {
     }
     
     renameFile(req, res) {
-        const { pathOld, pathNew } = req.body;
-        const isPathOldValid = new PathValidator(res, this.generateValidatorConfig(), [pathOld])
-                .isJson()
-                .isValid();
-        if(!isPathOldValid) {
-            return;
-        }
-  
-        const validator = new PathValidator(res, generateValidatorConfig(), [pathOld, pathNew])
+        const { pathOld, pathNew } = req.body;  
+        const validator = new PathValidator(res, this.generateValidatorConfig(), [pathOld, pathNew])
             .isAllowed()
             .then(absolutePaths => {
                 const pathOld = absolutePaths[0];
                 const pathNew = absolutePaths[1];
-                // Выполняем переименование
-                fs.rename(absolutePathOld, absolutePathNew, err => {
-                    if(!this.checkFsErr(res, err, `Ошибка при переименовании ${absolutePathOld} в ${absolutePathNew}`)) {
-                        return;
+                fs.stat(pathOld, (err, stats) => {
+                    if (err) {
+                        if (err.code === 'ENOENT') {
+                            return res.status(500).json({ 
+                                error: `Не обнаружен исходный путь ${pathOld}`,
+                                details: err.message 
+                            });
+                        }
+                        return res.status(500).json({ 
+                            error: 'Не удалось получить данные о исходном пути ${pathOld}',
+                            details: error.message 
+                        });
                     }
-                    res.json({ 
-                        success: true,
-                        message: `Успешно переименовано ${absolutePathOld} в ${absolutePathNew}`,
-                        pathOld,
-                        pathNew
+                    // Выполняем переименование
+                    fs.rename(pathOld, pathNew, err => {
+                        if(!this.checkFsErr(res, err, `Ошибка при переименовании ${pathOld} в ${pathNew}`)) {
+                            return;
+                        }
+                        return res.json({ 
+                            success: true,
+                            message: `Успешно переименовано ${pathOld} в ${pathNew}`,
+                            pathOld,
+                            pathNew
+                        });
                     });
                 });
             });
@@ -173,7 +180,6 @@ class ApiRouter {
             .isAllowed()
             .then(absolutePath => {
                 fs.stat(absolutePath, (err, stats) => {
-                    console.log("stats", stats);
                     if (err) {
                         console.error(`Ошибка удаления ${absolutePath}`, err);
                         if (err.code === 'ENOENT') {
