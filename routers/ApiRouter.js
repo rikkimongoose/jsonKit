@@ -94,7 +94,7 @@ class ApiRouter {
     }
     
     createFile(req, res) {
-        const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
+        const validator = new PathValidator(res, this.generateValidatorConfig(), [req.body.path])
             .isAllowed()
             .isJson()
             .then(absolutePath => {
@@ -108,7 +108,7 @@ class ApiRouter {
                     return;
                     }
                 }
-                fs.writeFile(absolutePath, JSON.stringify(req.body, null, 2), (err) => {
+                fs.writeFile(absolutePath, JSON.stringify(req.body.data || {}, null, 2), (err) => {
                     if(!this.checkFsErr(res, err, `Ошибка записи файла: ${absolutePath}`)) {
                         return;
                     }

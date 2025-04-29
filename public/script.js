@@ -1,6 +1,21 @@
 const appState = {
-  currentJsonFile: "",
-  currentSelectedPath: ""
+    jsonFile: "",
+    selectedPath: "",
+    selectedDirectory: "",
+    selectedFileName: "",
+    selectNode: function(node) {
+        this.selectedPath = node.key;
+        const splitted = this.selectedPath.split('/');
+        if(node.folder) {
+            this.selectedFileName = splitted[splitted.length - 1];
+            this.selectedDirectory = this.selectedPath;
+        } else {
+            this.selectedFileName = splitted.pop();
+            this.selectedDirectory = splitted.join('/');
+            this.jsonFile = this.selectedPath;
+        }
+        console.log("appState", appState);
+    }
 };
 
 const JsonEditorControl = {
@@ -61,21 +76,21 @@ const JsonEditorControl = {
             });
     },
     saveCurrentFile: function() {
-        if (!appState.currentJsonFile) return;
-        const currentJsonFile = appState.currentJsonFile;
+        if (!appState.jsonFile) return;
+        const jsonFile = appState.jsonFile;
         const json = this.editor.get();
-        fetch(`/api/file?path=${encodeURIComponent(currentJsonFile)}`, {
+        fetch(`/api/file?path=${encodeURIComponent(jsonFile)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(json, null, 2)
         })
         .then(response => {
             if (response.ok) { 
-                Logger.Success(`Файл ${currentJsonFile} успешно сохранён`);
-                Logger.Debug(`Файл ${currentJsonFile} успешно сохранён`, response);
+                Logger.Success(`Файл ${jsonFile} успешно сохранён`);
+                Logger.Debug(`Файл ${jsonFile} успешно сохранён`, response);
                 return response.json();
             }
-            throw new Error(`Ошибка: не удаётся сохранить файл ${currentJsonFile}:`); 
+            throw new Error(`Ошибка: не удаётся сохранить файл ${jsonFile}:`); 
         })
         .catch(error => {
             Logger.Debug(error.message);
@@ -137,12 +152,11 @@ const FileTreeControl = {
             },
             activate: (event, data) => {
                 const node = data.node;
-                if (!node.data) return;        
+                if (!node.data) return;
+                appState.selectNode(node);
                 if (node.type === 'file') {
-                    appState.currentJsonFile = node.key;
-                    JsonEditorControl.showFileContent(appState.currentJsonFile);
+                    JsonEditorControl.showFileContent(appState.jsonFile);
                 }
-                appState.currentSelectedPath = node.key;
             },
             sort: sortMethod,
         });
@@ -281,9 +295,9 @@ const FileTreeSocket = {
               isEndReached = true;
             }
             const nextNode = this.generateNode({
-              basename: pathSplitted[currentIndex],
-              path: currentDir,
-              isDirectory: true
+                basename: pathSplitted[currentIndex],
+                path: currentDir,
+                isDirectory: true
             });
             node.addChildren(nextNode);
             node.sortChildren(sortMethod, true);
@@ -328,7 +342,7 @@ const FileTreeSocket = {
             break;
         case 'change':        
             // Обновляем файл (если он открыт в редакторе)
-            if (appState.currentJsonFile === data.path) {
+            if (appState.jsonFile === data.path) {
                 JsonEditorControl.showFileContent(data.path);
             }
             const nodeToUpdate = tree.getNodeByKey(data.path);
@@ -464,7 +478,7 @@ const DirectoryCreateDialog = {
       prefix: "directory",
       toFetchData: (data) => {
           const values = data.values || {};
-          const path = [appState.currentSelectedPath, (values.path || "").trim()].join('/');
+          const path = [appState.selectedDirectory, (values.path || "").trim()].join('/');
           return {
             url: "/api/files",
             request: {
@@ -499,10 +513,12 @@ const FileCreateDialog = {
     const dialogItem = DialogFactory.create({
       prefix: "file",
       toFetchData: (data) => {
-          const values = data.values || {};
-          const path = (values.path || "").trim();
+          const values = data.values || {}; 
+          const newFilePath = [appState.selectedDirectory, (values.path || "").trim()].join('/');
+          const path = newFilePath + (!newFilePath.endsWith(".json") ? ".json" : '' );
+          console.log(`Creating file at ${path}`);
           return {
-            url: "/api/files",
+            url: "/api/file",
             request: {
               method: "POST",
               headers: {
@@ -534,7 +550,7 @@ const FileRenameDialog = {
     };
     const dialogItem = DialogFactory.create({
       prefix: "file-rename",
-      inputValues: () => { return { path: appState.currentSelectedPath || appState.currentJsonFile }},
+      inputValues: () => { return { path: appState.selectedPath || appState.jsonFile }},
       toFetchData: (data) => {
           const values = data.values || {};
           const path = (values.path || "").trim();
@@ -559,7 +575,7 @@ const RemoveDialog = {
   init: () => {
     const dialogItem = DialogFactory.create({
       prefix: "file-delete",
-      inputValues: () => { return { path: appState.currentSelectedPath || appState.currentJsonFile } },
+      inputValues: () => { return { path: appState.selectedPath || appState.jsonFile } },
       toFetchData: () => {
         return {
           url: `/api/files?path=${encodeURIComponent(path)}`,
