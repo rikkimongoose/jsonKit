@@ -56,6 +56,10 @@ class ConfigHelper {
 
     updateConfig(config) {
         const configOriginal = {...config};
+        if (process.env.MOCKFILES_DIR) {
+            console.log(`Рабочая директория загружена из переменных окружения: ${process.env.MOCKFILES_DIR}`);
+            configOriginal.navigation.jsonDirectory = process.env.MOCKFILES_DIR;
+        }
         configOriginal.isDev = this.isDev;
         configOriginal.https = loadTlsOptions(configOriginal.https);
         configOriginal.navigation.jsonDirectoryFull = path.resolve(configOriginal.navigation.jsonDirectory);
