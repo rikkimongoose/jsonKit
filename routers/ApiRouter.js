@@ -168,10 +168,12 @@ class ApiRouter {
     }
 
     deleteFile(req, res) {
+        console.log("req.query", req.query);
         const validator = new PathValidator(res, this.generateValidatorConfig(), [req.query.path])
             .isAllowed()
             .then(absolutePath => {
                 fs.stat(absolutePath, (err, stats) => {
+                    console.log("stats", stats);
                     if (err) {
                         console.error(`Ошибка удаления ${absolutePath}`, err);
                         if (err.code === 'ENOENT') {
@@ -183,8 +185,8 @@ class ApiRouter {
                             });
                         }
                     }
-                    const messageOK = { success: true, message: `Удаление ${requestedPath} успешно` }
-                    const messageErrText = `Ошибка при удалении ${requestedPath}`
+                    const messageOK = { success: true, message: `Удаление ${absolutePath} успешно` }
+                    const messageErrText = `Ошибка при удалении ${absolutePath}`
                     if (stats.isDirectory()) {
                         // Удаление директории
                         fs.rm(absolutePath, { recursive: true, force: true }, err => {

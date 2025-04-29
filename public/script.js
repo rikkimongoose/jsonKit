@@ -550,7 +550,7 @@ const FileRenameDialog = {
     };
     const dialogItem = DialogFactory.create({
       prefix: "file-rename",
-      inputValues: () => { return { path: appState.selectedPath || appState.jsonFile }},
+      inputValues: () => { return { path: appState.selectedFileName } },
       toFetchData: (data) => {
           const values = data.values || {};
           const path = (values.path || "").trim();
@@ -561,7 +561,7 @@ const FileRenameDialog = {
               headers: {
                 "Content-Type": "application/json"
               },
-              body: JSON.stringify({ pathOld: "", pathNew: path })
+              body: JSON.stringify({ pathOld: appState.selectedPath, pathNew: path })
             }
           }
       },
@@ -575,10 +575,14 @@ const RemoveDialog = {
   init: () => {
     const dialogItem = DialogFactory.create({
       prefix: "file-delete",
-      inputValues: () => { return { path: appState.selectedPath || appState.jsonFile } },
-      toFetchData: () => {
+      inputValues: () => { return { 
+          fileName: appState.selectedFileName
+        }
+      },
+      toFetchData: (data) => {
+        const path = appState.selectedPath;
         return {
-          url: `/api/files?path=${encodeURIComponent(path)}`,
+          url: `/api/file?path=${encodeURIComponent(path)}`,
           request: {
             method: "DELETE"
           }
