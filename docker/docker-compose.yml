@@ -4,7 +4,7 @@ services:
   wiregock-app:
     build: .
     volumes:
-      - mockfiles:${MOCKFILES_DIR}:ro  # Go — только чтение
+      - mockfiles:${MOCKFILES_DIR}:ro
     environment:
       - MOCKFILES_DIR=${MOCKFILES_DIR:-/app/mockfiles}
       - PORT=${SERVER_PORT:-8080}
@@ -13,9 +13,8 @@ services:
 
   jsonKit:
     build: .
-    command: sh -c "cd /app/jsonKit && npm start"
     volumes:
-      - mockfiles:${MOCKFILES_DIR}:rw  # Node.js — чтение и запись
+      - mockfiles:${MOCKFILES_DIR}:rw
     environment:
       - MOCKFILES_DIR=${MOCKFILES_DIR:-/app/mockfiles}
       - PORT=3000
@@ -24,18 +23,16 @@ services:
       - "3000:3000"
       - "3030:3030"
 
-  git-sync:
-    image: k8s.gcr.io/git-sync:v3.6.1
+  ungit:
+    build: .
+    command: /app/start.sh
     volumes:
-      - mockfiles:/tmp/git:rw  # Git — полный доступ
+      - mockfiles:${MOCKFILES_DIR}:rw  # Ungit нужен доступ на запись
     environment:
-      GIT_REPO: "https://github.com/your/repo.git"
-      GIT_BRANCH: "main"
-      DEST_DIR: "/tmp/git"
-      WAIT: "10"
-      # Опционально: настройки пользователя Git
-      GIT_SYNC_USERNAME: "your_username"
-      GIT_SYNC_PASSWORD: "your_token"
+      - UNGIT_PORT=8443
+      - UNGIT_DIR=${MOCKFILES_DIR:-/app/mockfiles}
+    ports:
+      - "8443:8443"  # HTTPS-порт Ungit
 
 volumes:
-  mockfiles:  # Создаём именованный volume для конфигов
+  mockfiles:
