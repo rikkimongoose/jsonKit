@@ -6,14 +6,15 @@ const appState = {
     selectedIsFolder: false,
     selectNode: function(node) {
         this.selectedPath = node.key;
-        const splitted = this.selectedPath.split('/');
+        const separator = detectPathSeparator(this.selectedPath);
+        const splitted = this.selectedPath.split(separator);
         if(node.folder) {
             this.selectedFileName = splitted[splitted.length - 1];
             this.selectedDirectory = this.selectedPath;
             this.selectedIsFolder = true;
         } else {
             this.selectedFileName = splitted.pop();
-            this.selectedDirectory = splitted.join('/');
+            this.selectedDirectory = splitted.join(separator);
             this.jsonFile = this.selectedPath;
             this.selectedIsFolder = false;
         }
@@ -226,18 +227,19 @@ const FileTreeSocket = {
     },
     handleEvent: function(evt) {
       const data = JSON.parse(evt.data);
+      const separator = detectPathSeparator(data.path);
       Logger.Debug('FS event:', data);
       
       const tree = FileTreeControl.fancytree;
       if (!tree) return;
     
       const pathHelper = {
-        split: (path) => path.split('/'),
+        split: (path) => path.split(separator),
         join: (pathArr, len) => {
           if (len) {
             pathArr = pathArr.slice(0, len) 
           }
-          return pathArr.join('/');
+          return pathArr.join(separator);
         }
       };
       const dataDirSplitted = pathHelper.split(this.dataDir);
@@ -473,11 +475,13 @@ const DirectoryCreateDialog = {
         }
       }
     };
+
     const dialogItem = DialogFactory.create({
       prefix: "directory",
       toFetchData: (data) => {
           const values = data.values || {};
-          const path = [appState.selectedDirectory, (values.path || "").trim()].join('/');
+          const separator = detectPathSeparator(values.path);
+          const path = [appState.selectedDirectory, (values.path || "").trim()].join(separator);
           return {
             url: "/api/files",
             request: {
@@ -513,7 +517,8 @@ const FileCreateDialog = {
       prefix: "file",
       toFetchData: (data) => {
           const values = data.values || {}; 
-          const newFilePath = [appState.selectedDirectory, (values.path || "").trim()].join('/');
+          const separator = detectPathSeparator(values.path);
+          const newFilePath = [appState.selectedDirectory, (values.path || "").trim()].join(separator);
           const path = newFilePath + (!newFilePath.endsWith(".json") ? ".json" : '');
           return {
               url: "/api/file",
@@ -530,6 +535,10 @@ const FileCreateDialog = {
     });
     return this;
   }
+}
+
+function detectPathSeparator(str) {
+    return str.includes("\\") ? "\\" : "/";
 }
 
 const FileRenameDialog = {
@@ -551,14 +560,15 @@ const FileRenameDialog = {
         inputValues: () => { return { path: appState.selectedFileName } },
         toFetchData: (data) => {
             const values = data.values || {};
-            const splitted = appState.selectedDirectory.split('/');
+            const separator = detectPathSeparator(appState.selectedDirectory);
+            const splitted = appState.selectedDirectory.split(separator);
             const pathTrimmed = (values.path || "").trim();
             if(appState.selectedIsFolder) {
                 splitted[splitted.length - 1] = pathTrimmed;
             } else {
                 splitted.push(pathTrimmed);
             }
-            const newFilePath = splitted.join('/');
+            const newFilePath = splitted.join(separator);
             const path = newFilePath + (!(appState.selectedIsFolder || newFilePath.endsWith(".json")) ? ".json" : '');
             return {
                 url: "/api/file-rename",

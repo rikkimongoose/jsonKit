@@ -18,6 +18,7 @@
   <script src="/modules/mitt/dist/mitt.umd.js"></script>
 </head>
 <body>
+
   <!-- Заголовок приложения -->
   <div class="header">
     <div class="header-block-left">
@@ -50,10 +51,18 @@
       <div class="left-bottom">
         <div class="button-container">
           <div class="block-left">
-            <button id="btn-directory">Create Folder</button>
-            <button id="btn-file">Create File</button>
-            <button id="btn-file-rename">Rename</button>
-            <button id="btn-file-delete" class="red-button">Delete</button>
+            <button id="btn-directory" class="icon-btn">
+              <svg class="icon"> <use href="/svg/folder-plus.svg"></use></svg>
+            </button>
+            <button id="btn-file" class="icon-btn">
+              <svg class="icon"> <use href="/svg/text-plus.svg"></use></svg>
+            </button>
+            <button id="btn-file-rename" class="icon-btn">
+              <svg class="icon"> <use href="/svg/pencil-down.svg"></use></svg>
+            </button>
+            <button id="btn-file-delete" class="red-button icon-btn">
+              <svg class="icon"> <use href="/svg/trash.svg"></use></svg>
+            </button>
           </div>
           <div class="block-right">
           </div>
@@ -69,7 +78,9 @@
       <!-- Нижний блок с панелью кнопок -->
       <div class="right-bottom">
         <div class="button-container">
-            <button id="save-btn">Save</button>
+            <button id="save-btn" class="icon-btn">
+                <svg class="icon"><use href="/svg/device-floppy.svg"></use></svg>
+              </button>
             <div id="opened-file-path-display" class="header-block-right path-display">no file selected</div>
         </div>
       </div>
