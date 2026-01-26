@@ -175,16 +175,23 @@ const FileTreeControl = {
             }
             const filter = (node) => {
                 // Приводим к нижнему регистру для нечувствительности к регистру
-                var title = node.title ? node.title.trim().toLowerCase() : "";
                 var filterStrLower = filterStr.trim().toLowerCase();
-                const comparatorFilter = ComparatorFactory.generateComparator(filterStrLower);
 
-                if (comparatorFilter.matches(title)) {
-                    return true;
-                }
-                if (filterStrLower.length > config.extDataFilterSize && node.data && node.data.extData) {
-                    // Получаем дополнительное поле extData, если оно задано
-                    return Object.values(node.data.extData).some((items) => items.some((item) => comparatorFilter.matches(item)));          
+                if (filterStrLower.length >= config.extDataFilterSize) {
+                    var title = node.title ? node.title.trim().toLowerCase() : "";
+                    if (title.includes(filterStrLower)) {
+                        return true;
+                    }
+
+                    const comparatorFilter = ComparatorFactory.generateComparator(filterStrLower);
+                    
+                    if (comparatorFilter.matches(title)) {
+                        return true;
+                    }
+                    if (node.data && node.data.extData) {
+                        // Получаем дополнительное поле extData, если оно задано
+                        return Object.values(node.data.extData).some((items) => items.some((item) => item.includes(filterStrLower) || comparatorFilter.matches(item)));          
+                    }
                 }
                 return false;
             };

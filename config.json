@@ -7,10 +7,12 @@
     },
     "navigation": {
         "jsonDirectory": "./examples",
-        "extDataFilterSize": 2,
+        "extDataFilterSize": 3,
         "extData": {
-            "urlPath": "$.mappings[*].request.urlPath",
-            "urlPathTemplate": "$.mappings[*].request.urlPathTemplate"
+            "urlPathMappings": "$.mappings[*].request.urlPath",
+            "urlPathTemplateMappings": "$.mappings[*].request.urlPathTemplate",
+            "urlPath": "$.request.urlPath",
+            "urlPathTemplate": "$.request.urlPathTemplate"
         }
     }
 }

@@ -1,5 +1,9 @@
 const ComparatorFactory = {
+    cache: {},
     generateComparator: function(filterStr) {
+        if(filterStr in this.cache) {
+            return this.cache[filterStr];
+        }
         const normFilterStr = norm(filterStr);
         const operators = ['!', '|', '&'];
         const wildcards = ["?", "*"];
@@ -34,7 +38,7 @@ const ComparatorFactory = {
             };
         }
         const ast = generateAST(normFilterStr);
-        return {
+        const comparator = {
             ast,
             matches: function(str) {
                 const executorFunc = (token) => {
@@ -46,5 +50,8 @@ const ComparatorFactory = {
                 return evaluate(this.ast, executorFunc);
             }
         }
+
+        this.cache[filterStr] = comparator;
+        return comparator;
     }
 }
