@@ -12,7 +12,8 @@
             "urlPathMappings": "$.mappings[*].request.urlPath",
             "urlPathTemplateMappings": "$.mappings[*].request.urlPathTemplate",
             "urlPath": "$.request.urlPath",
-            "urlPathTemplate": "$.request.urlPathTemplate"
+            "urlPathTemplate": "$.request.urlPathTemplate",
+            "url": "$.request.url"
         }
     }
 }
