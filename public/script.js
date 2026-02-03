@@ -8,7 +8,7 @@ const appState = {
         this.selectedPath = node.key;
         const separator = detectPathSeparator(this.selectedPath);
         const splitted = this.selectedPath.split(separator);
-        if(node.folder) {
+        if (node.folder) {
             this.selectedFileName = splitted[splitted.length - 1];
             this.selectedDirectory = this.selectedPath;
             this.selectedIsFolder = true;
@@ -20,6 +20,37 @@ const appState = {
         }
     }
 };
+
+const GlobalCache = {
+    _store: new Map(),
+  
+    _key(type, path) {
+        return `${type}::${path}`;
+    },
+  
+    add(obj) {
+        if (!obj?.type || !obj?.path) {
+            throw new Error('Object must have type and path');
+        }
+  
+      this._store.set(this._key(obj.type, obj.path), obj);
+    },
+  
+    hasAndRemove({ type, path }) {
+      const key = this._key(type, path);
+  
+      if (this._store.has(key)) {
+        this._store.delete(key);
+        return true;
+      }
+  
+      return false;
+    },
+  
+    clear() {
+      this._store.clear();
+    }
+}; 
 
 const JsonEditorControl = {
     container: null,
@@ -137,7 +168,7 @@ const FileTreeControl = {
         const dataSourceRequest = `/api/files?path=${encodeURIComponent(filepath)}`;
         this.fileTreeControl = $("#file-tree");
         this.fancytreeControl = this.fileTreeControl.fancytree({
-            extensions: ["filter"],
+            extensions: ["filter", "dnd", "edit"],
             checkbox: false,
             selectMode: 1,
             source: {
@@ -162,6 +193,51 @@ const FileTreeControl = {
                 }
             },
             sort: sortMethod,
+            dnd: {
+                autoExpandMS: 400,
+                focusOnClick: true,
+                preventVoidMoves: true, // Prevent dropping nodes 'before self', etc.
+                preventRecursiveMoves: true, // Prevent dropping nodes on own descendants
+                dragStart: function(node, data) {
+                /** This function MUST be defined to enable dragging for the tree.
+                 *  Return false to cancel dragging of node.
+                 */
+                return true;
+                },
+                dragEnter: function(node, data) {
+                    if ("directory" === node.type) {
+                        return true;
+                    }
+                    return ["after"];
+                },
+                dragDrop: function(node, data) {
+                    /** This function MUST be defined to enable dropping of items on
+                     *  the tree.
+                     */
+                    data.otherNode.moveTo(node, data.hitMode);
+                    const pathFileFrom = data.otherNode.key;
+                    const pathDirTo = node.key;
+
+                    const separator = detectPathSeparator(pathFileFrom);
+                    const splittedPathFileFrom = pathFileFrom.split(separator);
+                    const fromName = splittedPathFileFrom.pop();
+
+                    const moveRequest = prepareMoveRequest(fromName, pathFileFrom, pathDirTo);
+
+                    fetch(moveRequest.url, moveRequest.request)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.success) {
+                            console.error(data);
+                            return;
+                        }
+                        node.key = data.pathNew;
+                    })
+                    .catch(err => {
+                        console.error(err);
+                    });
+                }
+            },
         });
         this.fancytree = $.ui.fancytree.getTree(this.fancytreeControl);
         // Фильтрация дерева
@@ -337,6 +413,11 @@ const FileTreeSocket = {
             }
           }
       };
+
+      if (GlobalCache.hasAndRemove(data)) {
+            return;
+      }
+
       switch(data.type) {
         case 'add':
             // Добавляем новый узел
@@ -567,31 +648,36 @@ const FileRenameDialog = {
         inputValues: () => { return { path: appState.selectedFileName } },
         toFetchData: (data) => {
             const values = data.values || {};
-            const separator = detectPathSeparator(appState.selectedDirectory);
-            const splitted = appState.selectedDirectory.split(separator);
             const pathTrimmed = (values.path || "").trim();
-            if(appState.selectedIsFolder) {
-                splitted[splitted.length - 1] = pathTrimmed;
-            } else {
-                splitted.push(pathTrimmed);
-            }
-            const newFilePath = splitted.join(separator);
-            const path = newFilePath + (!(appState.selectedIsFolder || newFilePath.endsWith(".json")) ? ".json" : '');
-            return {
-                url: "/api/file-rename",
-                request: {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ pathOld: appState.selectedPath, pathNew: path })
-                }
-            }
+            
+            return prepareMoveRequest(pathTrimmed, appState.selectedPath, appState.selectedDirectory);
         },
         validation
     });
     return this;
   }
+}
+
+function prepareMoveRequest(fromName, from, to) {
+    const separator = detectPathSeparator(to);
+    const splitted = to.split(separator);
+    if(appState.selectedIsFolder) {
+        splitted[splitted.length - 1] = fromName;
+    } else {
+        splitted.push(fromName);
+    }
+    const newFilePath = splitted.join(separator);
+    const path = newFilePath + (!(appState.selectedIsFolder || newFilePath.endsWith(".json")) ? ".json" : '');
+    return {
+        url: "/api/file-rename",
+        request: {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ pathOld: from, pathNew: path })
+        }
+    }
 }
 
 const RemoveDialog = {
