@@ -47,6 +47,11 @@ const GlobalCache = {
       return false;
     },
   
+    has({ type, path }) {
+      const key = this._key(type, path);
+      return this._store.has(key);
+    },
+  
     clear() {
       this._store.clear();
     }
@@ -231,13 +236,76 @@ const FileTreeControl = {
                             console.error(data);
                             return;
                         }
-                        node.key = data.pathNew;
+                        const pathNew = data.pathNew;
+                        node.key = pathNew;
+                        JsonEditorControl.openedFilePathDisplayElement.textContent = pathNew;
+                        appState.selectNode(node);
                     })
                     .catch(err => {
                         console.error(err);
                     });
                 }
             },
+            edit: {
+                triggerStart: ["clickActive", "dblclick", "f2", "mac+enter", "shift+click"],
+                beforeClose: function(event, data){
+                    console.log(event.type, event, data);
+                },
+                beforeEdit: function(event, data){
+                    // Return false to prevent edit mode
+                },
+                edit: function(event, data){
+                // Editor was opened (available as data.input)
+                },
+                save: function(event, data){
+                    // Simulate to start a slow ajax request...
+                    console.log(event.type, event, data);
+                    const pathFileFrom = data.node.key;
+                    const nameFileTo = data.input.val();
+
+                    const separator = detectPathSeparator(pathFileFrom);
+                    const splittedPath = pathFileFrom.split(separator);
+                    splittedPath.pop();
+                    const pathDirTo = splittedPath.join(separator);
+                    splittedPath.push(nameFileTo);
+                    const pathFileTo = splittedPath.join(separator);
+                    const moveRequest = generateMoveRequest(pathFileFrom, pathFileTo);
+                    const nodeElem = data.node;
+                    
+                    [
+                        ['add', pathFileTo],
+                        ['unlink', pathFileFrom]
+                    ].forEach(
+                        ([type, path]) => GlobalCache.add({ type, path })
+                    );
+
+                    fetch(moveRequest.url, moveRequest.request)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (!data.success) {
+                                console.error(data);
+                                return;
+                            }
+                            const pathNew = data.pathNew;
+                            nodeElem.key = pathNew;
+                            
+                            JsonEditorControl.openedFilePathDisplayElement.textContent = pathNew;
+                            appState.selectNode(nodeElem);
+                            $(nodeElem.span).removeClass("pending");
+                        })
+                        .catch(err => {
+                            console.error(err);
+                        });
+                    return true;
+                },
+                close: function(event, data){
+                    // Editor was removed
+                    if( data.save ) {
+                        // Since we started an async request, mark the node as preliminary
+                        $(data.node.span).addClass("pending");
+                    }
+                }
+            }
         });
         this.fancytree = $.ui.fancytree.getTree(this.fancytreeControl);
         // Фильтрация дерева
@@ -668,6 +736,10 @@ function prepareMoveRequest(fromName, from, to) {
     }
     const newFilePath = splitted.join(separator);
     const path = newFilePath + (!(appState.selectedIsFolder || newFilePath.endsWith(".json")) ? ".json" : '');
+    return generateMoveRequest(from, path);
+}
+
+function generateMoveRequest(pathOld, pathNew) {
     return {
         url: "/api/file-rename",
         request: {
@@ -675,9 +747,9 @@ function prepareMoveRequest(fromName, from, to) {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ pathOld: from, pathNew: path })
+            body: JSON.stringify({ pathOld, pathNew })
         }
-    }
+    };
 }
 
 const RemoveDialog = {
