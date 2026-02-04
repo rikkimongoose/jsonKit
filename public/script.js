@@ -219,9 +219,10 @@ const FileTreeControl = {
                     /** This function MUST be defined to enable dropping of items on
                      *  the tree.
                      */
-                    data.otherNode.moveTo(node, data.hitMode);
+                    const otherNode = data.otherNode;
+                    otherNode.moveTo(node, data.hitMode);
 
-                    const pathFileFrom = data.otherNode.key;
+                    const pathFileFrom = otherNode.key;
                     const separator = detectPathSeparator(pathFileFrom);
                     const splittedPathFileTo = node.key.split(separator);
                     if (!node.folder) {
@@ -249,11 +250,14 @@ const FileTreeControl = {
                                 return;
                             }
                             const pathNew = data.pathNew;
-                            node.key = pathNew;
-                            if (!node.folder) {
+                            otherNode.key = pathNew;
+                            if (!otherNode.folder) {
                                 document.getElementById('opened-file-path-display').textContent = pathNew;
                             }
-                            appState.selectNode(node);
+                            appState.selectNode(otherNode);
+                            if (otherNode.type === 'file') {
+                                JsonEditorControl.showFileContent(appState.jsonFile);
+                            }
                         })
                         .catch(err => {
                             console.error(err);
@@ -278,7 +282,6 @@ const FileTreeControl = {
                     const separator = detectPathSeparator(pathFileFrom);
                     const splittedPath = pathFileFrom.split(separator);
                     splittedPath.pop();
-                    const pathDirTo = splittedPath.join(separator);
                     splittedPath.push(nameFileTo);
                     const pathFileTo = splittedPath.join(separator);
                     const moveRequest = generateMoveRequest(pathFileFrom, pathFileTo);
