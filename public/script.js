@@ -220,18 +220,21 @@ const FileTreeControl = {
                      *  the tree.
                      */
                     data.otherNode.moveTo(node, data.hitMode);
-                    const pathFileFrom = data.otherNode.key;
-                    const pathDirTo = node.key;
 
+                    const pathFileFrom = data.otherNode.key;
                     const separator = detectPathSeparator(pathFileFrom);
+                    const splittedPathFileTo = node.key.split(separator);
+                    if (!node.folder) {
+                        splittedPathFileTo.pop();
+                    }
                     const splittedPathFileFrom = pathFileFrom.split(separator);
                     const fromName = splittedPathFileFrom.pop();
 
-                    const moveRequest = prepareMoveRequest(fromName, pathFileFrom, pathDirTo);
-
-                    const splittedPathFileTo = pathDirTo.split(separator);
                     splittedPathFileTo.push(fromName);
                     const pathFileTo = splittedPathFileTo.join(separator);
+
+                    const moveRequest = generateMoveRequest(pathFileFrom, pathFileTo);
+                    
                     [
                         ['add', pathFileTo],
                         ['unlink', pathFileFrom]
@@ -248,7 +251,7 @@ const FileTreeControl = {
                             const pathNew = data.pathNew;
                             node.key = pathNew;
                             if (!node.folder) {
-                                JsonEditorControl.openedFilePathDisplayElement.textContent = pathNew;
+                                document.getElementById('opened-file-path-display').textContent = pathNew;
                             }
                             appState.selectNode(node);
                         })
@@ -300,7 +303,7 @@ const FileTreeControl = {
                             
                             appState.selectNode(nodeElem);
                             if(!nodeElem.folder) {
-                                JsonEditorControl.openedFilePathDisplayElement.textContent = pathNew;
+                                document.getElementById('opened-file-path-display').textContent = pathNew;
                             }
                             $(nodeElem.span).removeClass("pending");
                         })
@@ -492,7 +495,7 @@ const FileTreeSocket = {
             }
           }
       };
-      
+      console.log(GlobalCache.has(data), data);
       if (GlobalCache.hasAndRemove(data)) {
             return;
       }
@@ -646,6 +649,7 @@ const DirectoryCreateDialog = {
     const dialogItem = DialogFactory.create({
       prefix: "directory",
       toFetchData: (data) => {
+          console.log(data);
           const values = data.values || {};
           const separator = detectPathSeparator(values.path);
           const path = [appState.selectedDirectory, (values.path || "").trim()].join(separator);
