@@ -229,27 +229,37 @@ const FileTreeControl = {
 
                     const moveRequest = prepareMoveRequest(fromName, pathFileFrom, pathDirTo);
 
+                    const splittedPathFileTo = pathDirTo.split(separator);
+                    splittedPathFileTo.push(fromName);
+                    const pathFileTo = splittedPathFileTo.join(separator);
+                    [
+                        ['add', pathFileTo],
+                        ['unlink', pathFileFrom]
+                    ].forEach(
+                        ([type, path]) => GlobalCache.add({ type, path })
+                    );
                     fetch(moveRequest.url, moveRequest.request)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!data.success) {
-                            console.error(data);
-                            return;
-                        }
-                        const pathNew = data.pathNew;
-                        node.key = pathNew;
-                        JsonEditorControl.openedFilePathDisplayElement.textContent = pathNew;
-                        appState.selectNode(node);
-                    })
-                    .catch(err => {
-                        console.error(err);
+                        .then(res => res.json())
+                        .then(data => {
+                            if (!data.success) {
+                                console.error(data);
+                                return;
+                            }
+                            const pathNew = data.pathNew;
+                            node.key = pathNew;
+                            if (!node.folder) {
+                                JsonEditorControl.openedFilePathDisplayElement.textContent = pathNew;
+                            }
+                            appState.selectNode(node);
+                        })
+                        .catch(err => {
+                            console.error(err);
                     });
                 }
             },
             edit: {
                 triggerStart: ["clickActive", "dblclick", "f2", "mac+enter", "shift+click"],
-                beforeClose: function(event, data){
-                    console.log(event.type, event, data);
+                beforeClose: function(event, data) {
                 },
                 beforeEdit: function(event, data){
                     // Return false to prevent edit mode
@@ -259,7 +269,6 @@ const FileTreeControl = {
                 },
                 save: function(event, data){
                     // Simulate to start a slow ajax request...
-                    console.log(event.type, event, data);
                     const pathFileFrom = data.node.key;
                     const nameFileTo = data.input.val();
 
@@ -289,8 +298,10 @@ const FileTreeControl = {
                             const pathNew = data.pathNew;
                             nodeElem.key = pathNew;
                             
-                            JsonEditorControl.openedFilePathDisplayElement.textContent = pathNew;
                             appState.selectNode(nodeElem);
+                            if(!nodeElem.folder) {
+                                JsonEditorControl.openedFilePathDisplayElement.textContent = pathNew;
+                            }
                             $(nodeElem.span).removeClass("pending");
                         })
                         .catch(err => {
@@ -481,7 +492,7 @@ const FileTreeSocket = {
             }
           }
       };
-
+      
       if (GlobalCache.hasAndRemove(data)) {
             return;
       }
