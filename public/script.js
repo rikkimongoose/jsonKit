@@ -186,7 +186,10 @@ const FileTreeControl = {
                 data.result = new Promise((resolve) => {
                     fetch(`/api/files?path=${encodeURIComponent(data.node.data.key)}`)
                         .then(response => response.json())
-                        .then(items => resolve(items));
+                        .then(items => resolve(items))
+                        .catch(err => {
+                            console.error(err);
+                        });;
                 });
             },
             activate: (event, data) => {
@@ -249,6 +252,7 @@ const FileTreeControl = {
                                 console.error(data);
                                 return;
                             }
+                            const pathOld = otherNode.key;
                             const pathNew = data.pathNew;
                             otherNode.key = pathNew;
                             if (!otherNode.folder) {
@@ -261,7 +265,7 @@ const FileTreeControl = {
                         })
                         .catch(err => {
                             console.error(err);
-                    });
+                        });
                 }
             },
             edit: {
@@ -603,9 +607,9 @@ const DialogFactory = {
                       $dialogDiv.dialog("close");
                       return response.json();
                     })
-                    .catch(function(error) {
-                        Logger.Error(error.message, "Ошибка запроса");
-                    });
+                    .catch(err => {
+                        console.error(err);
+                    });;
             },
             "Cancel": function() {
                 $(this).dialog("close");
@@ -824,7 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
             [UIControl, FileTreeControl, FileTreeSocket, DialogControl, SliderControl].forEach(control => control.init(config));
         })
         .catch(error => {
-            Logger.Error(error.message, 'Ошибка загрузки конфигурации');
+            console.error(error.message, 'Ошибка загрузки конфигурации');
             UIControl.currentPathElement.textContent = 'Ошибка загрузки конфигурации';
         });
 
