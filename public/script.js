@@ -1,14 +1,19 @@
 const appState = {
     jsonFile: "",
+    selectedNode: null,
     selectedPath: "",
     selectedDirectory: "",
     selectedFileName: "",
     selectedIsFolder: false,
     selectNode: function(node) {
-        this.selectedPath = node.key;
+        this.selectedNode = node;
+        this.reloadNode();
+    },
+    reloadNode: function() {
+        this.selectedPath = this.selectedNode.key;
         const separator = detectPathSeparator(this.selectedPath);
         const splitted = this.selectedPath.split(separator);
-        if (node.folder) {
+        if (this.selectedNode.folder) {
             this.selectedFileName = splitted[splitted.length - 1];
             this.selectedDirectory = this.selectedPath;
             this.selectedIsFolder = true;
@@ -17,6 +22,7 @@ const appState = {
             this.selectedDirectory = splitted.join(separator);
             this.jsonFile = this.selectedPath;
             this.selectedIsFolder = false;
+            JsonEditorControl.showFileContent(this.jsonFile);
         }
     }
 };
@@ -162,6 +168,21 @@ const sortMethod = (a, b) => {
   return x === y ? 0 : x > y ? 1 : -1;
 };
 
+function updateNodeKey(node, oldKey, newKey) {
+    const oldKeyFull = node.key;
+    const newKeyFull = oldKeyFull.replaceAll(oldKey, newKey);
+    node.key = newKeyFull;
+    console.log("Key path is changed from '" + oldKeyFull + "' to '" + newKeyFull + "'. Updating...");
+    if (node.folder) {
+        node.visit(function(n) {
+            updateNodeKey(n, oldKey, newKey);
+        });
+    } else if (appState.jsonFile === oldKeyFull) {
+        console.log("Reload current Json");
+        appState.selectNode(node);
+    }
+}
+
 const FileTreeControl = {
     fileTreeControl: null,
     refreshTreeControl: null,
@@ -196,9 +217,6 @@ const FileTreeControl = {
                 const node = data.node;
                 if (!node.data) return;
                 appState.selectNode(node);
-                if (node.type === 'file') {
-                    JsonEditorControl.showFileContent(appState.jsonFile);
-                }
             },
             sort: sortMethod,
             dnd: {
@@ -223,6 +241,7 @@ const FileTreeControl = {
                      *  the tree.
                      */
                     const otherNode = data.otherNode;
+                    const otherNodeChildren = otherNode.children;
                     otherNode.moveTo(node, data.hitMode);
 
                     const pathFileFrom = otherNode.key;
@@ -236,7 +255,6 @@ const FileTreeControl = {
 
                     splittedPathFileTo.push(fromName);
                     const pathFileTo = splittedPathFileTo.join(separator);
-
                     const moveRequest = generateMoveRequest(pathFileFrom, pathFileTo);
                     
                     [
@@ -254,13 +272,9 @@ const FileTreeControl = {
                             }
                             const pathOld = otherNode.key;
                             const pathNew = data.pathNew;
-                            otherNode.key = pathNew;
-                            if (!otherNode.folder) {
-                                document.getElementById('opened-file-path-display').textContent = pathNew;
-                            }
-                            appState.selectNode(otherNode);
-                            if (otherNode.type === 'file') {
-                                JsonEditorControl.showFileContent(appState.jsonFile);
+                            updateNodeKey(otherNode, pathOld, pathNew);
+                            if(!otherNode.children) {
+                                otherNodeChildren.forEach(childNode => updateNodeKey(childNode, pathOld, pathNew));
                             }
                         })
                         .catch(err => {
@@ -306,12 +320,7 @@ const FileTreeControl = {
                                 return;
                             }
                             const pathNew = data.pathNew;
-                            nodeElem.key = pathNew;
-                            
-                            appState.selectNode(nodeElem);
-                            if(!nodeElem.folder) {
-                                document.getElementById('opened-file-path-display').textContent = pathNew;
-                            }
+                            updateNodeKey(nodeElem, pathFileFrom, pathNew);
                             $(nodeElem.span).removeClass("pending");
                         })
                         .catch(err => {
@@ -434,8 +443,14 @@ const FileTreeSocket = {
                 isDirectory: false,
                 extData: extData
             });
-            nodeDir.addChildren(fileNode);
-            nodeDir.sortChildren(sortMethod, true);
+            
+            var childExists = nodeDir.children && nodeDir.children.some(function(child) {
+                return child.key === fileNode.key;
+            });
+            if (!childExists) {
+                nodeDir.addChildren(fileNode);
+                nodeDir.sortChildren(sortMethod, true);
+            }
             return this.findNode(path);
         },
         addDir: function(path) {
@@ -449,8 +464,13 @@ const FileTreeSocket = {
                 path: path,
                 isDirectory: true
             });
-            parentNode.addChildren(nextNode);
-            parentNode.sortChildren(sortMethod, true);
+            var childExists = parentNode.children && parentNode.children.some(function(child) {
+                return child.key === nextNode.key;
+            });
+            if (!childExists) {
+                parentNode.addChildren(nextNode);
+                parentNode.sortChildren(sortMethod, true);
+            }
             return nextNode;
         },
         addDirSplitted: function (pathSplitted) {
@@ -474,11 +494,17 @@ const FileTreeSocket = {
                     path: currentDir,
                     isDirectory: true
                 });
-                node.addChildren(nextNode);
-                node.sortChildren(sortMethod, true);
+                            
+                var childExists = node.children && node.children.some(function(child) {
+                    return child.key === nextNode.key;
+                });
+                if (!childExists) {
+                    node.addChildren(nextNode);
+                    node.sortChildren(sortMethod, true);
+                }
                 node = tree.getNodeByKey(currentDir);
+                return node;
             }
-            return node;
         },
         remove: function (path) {
             // Удаляем узел
@@ -502,7 +528,7 @@ const FileTreeSocket = {
             }
           }
       };
-      console.log(GlobalCache.has(data), data);
+      
       if (GlobalCache.hasAndRemove(data)) {
             return;
       }
@@ -656,7 +682,6 @@ const DirectoryCreateDialog = {
     const dialogItem = DialogFactory.create({
       prefix: "directory",
       toFetchData: (data) => {
-          console.log(data);
           const values = data.values || {};
           const separator = detectPathSeparator(values.path);
           const path = [appState.selectedDirectory, (values.path || "").trim()].join(separator);
